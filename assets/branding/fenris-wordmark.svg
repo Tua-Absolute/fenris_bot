@@ -1,71 +1,70 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
-  <rect width="1200" height="400" fill="#0a1220"/>
+  <rect width="1200" height="400" fill="#070707"/>
   <g transform="translate(40 40) scale(0.625)">
   <defs>
-    <radialGradient id="bg" cx="50%" cy="40%" r="65%">
-      <stop offset="0" stop-color="#1d2f4a"/>
-      <stop offset="1" stop-color="#0a1220"/>
+    <radialGradient id="bg" cx="50%" cy="38%" r="65%">
+      <stop offset="0" stop-color="#2a0a10"/>
+      <stop offset=".7" stop-color="#0d0507"/>
+      <stop offset="1" stop-color="#050505"/>
     </radialGradient>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a4a52"/>
+      <stop offset="1" stop-color="#1c1c21"/>
+    </linearGradient>
+    <linearGradient id="muz" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6c6c76"/>
+      <stop offset="1" stop-color="#3a3a42"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
+    <g id="half">
+      <!-- ear -->
+      <path d="M146 64 C168 108 204 148 226 182 L166 206 C146 160 138 108 146 64Z" fill="#2c2c33"/>
+      <path d="M156 104 C170 134 190 160 206 184 L172 196 C162 164 155 134 156 104Z" fill="#7a0c1a"/>
+      <!-- head -->
+      <path d="M256 184 C228 172 196 170 166 192 C138 212 120 244 110 282 C104 302 94 318 80 332 C108 334 132 344 152 358 C166 382 194 406 222 422 C236 432 248 438 256 440Z" fill="url(#fur)"/>
+      <!-- cheek fur -->
+      <path d="M114 272 C102 306 86 330 64 342 C96 346 124 354 152 366 C144 344 128 310 114 272Z" fill="#33333a"/>
+      <path d="M130 318 C120 340 108 356 94 366 C118 366 140 372 160 384 C152 366 140 344 130 318Z" fill="#26262c"/>
+      <!-- forehead blaze -->
+      <path d="M256 194 C232 188 212 196 198 212 C222 222 240 240 248 266 L256 266Z" fill="#55555e"/>
+      <!-- muzzle -->
+      <path d="M256 262 C244 266 236 284 232 304 C228 330 228 350 232 364 C242 374 250 378 256 380Z" fill="url(#muz)"/>
+      <!-- eye socket shadow -->
+      <path d="M168 252 C192 248 218 260 238 280 C216 292 190 292 172 280 C166 272 164 262 168 252Z" fill="#121216"/>
+      <!-- eye -->
+      <path d="M180 262 C198 262 218 270 232 282 C214 288 196 288 186 280 C182 274 180 268 180 262Z" fill="#ff2236" filter="url(#glow)"/>
+      <!-- brow -->
+      <path d="M162 244 C192 234 224 248 248 276 L240 282 C218 260 192 250 164 254Z" fill="#0a0a0c"/>
+      <!-- nose -->
+      <path d="M256 348 C242 348 232 352 234 360 C238 370 248 378 256 380Z" fill="#070707"/>
+    </g>
   </defs>
+
   <circle cx="256" cy="256" r="248" fill="url(#bg)"/>
-  <circle cx="256" cy="256" r="236" fill="none" stroke="#7fd4ff" stroke-opacity=".55" stroke-width="4"/>
-  <circle cx="256" cy="256" r="224" fill="none" stroke="#7fd4ff" stroke-opacity=".18" stroke-width="2"/>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#c8102e" stroke-width="5"/>
+  <circle cx="256" cy="256" r="224" fill="none" stroke="#c8102e" stroke-opacity=".25" stroke-width="2"/>
 
   <!-- broken chain (Gleipnir) -->
   <g fill="none" stroke-linecap="round">
     <g transform="rotate(-22 150 420)">
-      <rect x="86" y="406" width="64" height="28" rx="14" stroke="#e8b84a" stroke-width="9"/>
-      <rect x="138" y="413" width="44" height="14" rx="7" stroke="#c99a30" stroke-width="9"/>
-      <path d="M176 410 h10 a10 10 0 0 1 10 10 v0" stroke="#e8b84a" stroke-width="9"/>
+      <rect x="86" y="406" width="64" height="28" rx="14" stroke="#c8102e" stroke-width="9"/>
+      <rect x="138" y="413" width="44" height="14" rx="7" stroke="#8e0b20" stroke-width="9"/>
+      <path d="M176 410 h10 a10 10 0 0 1 10 10" stroke="#c8102e" stroke-width="9"/>
     </g>
     <g transform="rotate(22 362 420)">
-      <rect x="362" y="406" width="64" height="28" rx="14" stroke="#e8b84a" stroke-width="9"/>
-      <rect x="330" y="413" width="44" height="14" rx="7" stroke="#c99a30" stroke-width="9"/>
-      <path d="M336 410 h-10 a10 10 0 0 0 -10 10 v0" stroke="#e8b84a" stroke-width="9"/>
+      <rect x="362" y="406" width="64" height="28" rx="14" stroke="#c8102e" stroke-width="9"/>
+      <rect x="330" y="413" width="44" height="14" rx="7" stroke="#8e0b20" stroke-width="9"/>
+      <path d="M336 410 h-10 a10 10 0 0 0 -10 10" stroke="#c8102e" stroke-width="9"/>
     </g>
   </g>
 
-  <!-- ears -->
-  <polygon points="138,78 214,178 124,222" fill="#9fb0c3"/>
-  <polygon points="138,78 214,178 176,190" fill="#6d7f95"/>
-  <polygon points="152,120 192,180 150,198" fill="#2b3a50"/>
-  <polygon points="374,78 298,178 388,222" fill="#9fb0c3"/>
-  <polygon points="374,78 298,178 336,190" fill="#6d7f95"/>
-  <polygon points="360,120 320,180 362,198" fill="#2b3a50"/>
-
-  <!-- head base -->
-  <polygon points="124,222 205,172 256,192 307,172 388,222 404,300 340,338 300,404 256,436 212,404 172,338 108,300" fill="#6d7f95"/>
-  <!-- cheek ruffs -->
-  <polygon points="108,300 172,338 150,360 92,322" fill="#9fb0c3"/>
-  <polygon points="404,300 340,338 362,360 420,322" fill="#9fb0c3"/>
-  <polygon points="124,222 172,338 108,300" fill="#8496ab"/>
-  <polygon points="388,222 340,338 404,300" fill="#8496ab"/>
-  <!-- forehead -->
-  <polygon points="205,172 256,192 307,172 286,252 256,262 226,252" fill="#c9d6e3"/>
-  <!-- brow shadows -->
-  <polygon points="124,222 205,172 226,252 182,262" fill="#7d8fa5"/>
-  <polygon points="388,222 307,172 286,252 330,262" fill="#7d8fa5"/>
-  <!-- muzzle -->
-  <polygon points="226,252 256,262 286,252 296,360 256,384 216,360" fill="#dfe8f1"/>
-  <polygon points="182,262 226,252 216,360 172,338" fill="#47566b"/>
-  <polygon points="330,262 286,252 296,360 340,338" fill="#47566b"/>
-  <!-- jaw -->
-  <polygon points="172,338 216,360 256,384 296,360 340,338 300,404 256,436 212,404" fill="#2b3a50"/>
-  <polygon points="216,360 256,384 296,360 284,398 256,412 228,398" fill="#9fb0c3"/>
-  <!-- nose -->
-  <polygon points="234,350 278,350 256,374" fill="#0a1220"/>
-
-  <!-- eyes -->
-  <g filter="url(#glow)" fill="#7fd4ff">
-    <polygon points="178,262 230,276 192,290"/>
-    <polygon points="334,262 282,276 320,290"/>
-  </g>
+  <use href="#half"/>
+  <use href="#half" transform="translate(512 0) scale(-1 1)"/>
 </g>
-  <text x="400" y="225" font-family="Inter Display, Inter, DejaVu Sans, Liberation Sans, Arial, sans-serif" font-weight="700" font-size="128" letter-spacing="22" fill="#dfe8f1">FENRIS</text>
-  <rect x="404" y="258" width="64" height="5" fill="#e8b84a"/>
-  <text x="484" y="268" font-family="Inter Display, Inter, DejaVu Sans, Liberation Sans, Arial, sans-serif" font-size="30" letter-spacing="8" fill="#7fd4ff">SERVER MANAGEMENT</text>
+  <text x="400" y="225" font-family="Inter Display, Inter, DejaVu Sans, sans-serif" font-weight="700" font-size="128" letter-spacing="22" fill="#f2f2f4">FENRIS</text>
+  <rect x="404" y="258" width="64" height="5" fill="#c8102e"/>
+  <text x="484" y="268" font-family="Inter Display, Inter, DejaVu Sans, sans-serif" font-size="30" letter-spacing="8" fill="#e0263d">SERVER MANAGEMENT</text>
 </svg>
