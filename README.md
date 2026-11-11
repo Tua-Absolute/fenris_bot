@@ -7,7 +7,7 @@ An all-in-one bot for running a Discord server: eye-catching announcements, Disc
 1. **Foundation** (done): project setup, slash command framework, `/ping`, invite link.
 2. **Management commands** (done): `/announce`, `/event`, `/poll`. Scheduled posting comes later, once the bot has storage.
 3. **Claude in chat** (done): mention the bot to talk to it; plain-English requests turn into announcements, events, and polls after a Confirm button.
-4. **Asset generation**: banner and cover images built from templates. Paid image models (Gemini, ChatGPT) are deliberately left out for now.
+4. **Asset generation** (done): free banner and event cover images in five styles. Paid image models (Gemini, ChatGPT) are deliberately left out for now.
 
 ## Setup (about 10 minutes)
 
@@ -44,6 +44,11 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/event list` | Manage Events | Shows upcoming events with times in each viewer's own time zone. |
 | `/event cancel` | Manage Events | Cancels an event (pick it from the suggestions). |
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
+| `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
+
+**Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and your server's icon, or the Fenris wolf if the server has no icon). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
+
+![Example banner](assets/branding/example-banner.png)
 
 Times typed into commands are read in the `TIMEZONE` from `.env` (default `America/Chicago`). You can change who sees each command in Server Settings > Integrations > Fenris.
 

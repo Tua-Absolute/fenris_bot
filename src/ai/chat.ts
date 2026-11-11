@@ -111,7 +111,7 @@ async function onMessage(message: Message, client: Client<true>) {
       return;
     }
 
-    const { summary, embed } = preview(message.guild, result.action);
+    const { summary, embed, files } = await preview(message.guild, result.action);
     const id = randomUUID();
     for (const [key, p] of pending) if (p.expires < now) pending.delete(key);
     pending.set(id, { action: result.action, userId: message.author.id, expires: now + PENDING_TTL_MS });
@@ -119,6 +119,7 @@ async function onMessage(message: Message, client: Client<true>) {
     await message.reply({
       content: `${result.text ? result.text + "\n" : ""}${summary}`.slice(0, 2000),
       embeds: [embed],
+      files,
       components: [new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder().setCustomId(`chat:confirm:${id}`).setLabel("Confirm").setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId(`chat:cancel:${id}`).setLabel("Cancel").setStyle(ButtonStyle.Secondary),
@@ -146,7 +147,7 @@ export async function handleChatButton(interaction: ButtonInteraction) {
   pending.delete(id);
 
   if (choice === "cancel") {
-    await interaction.update({ content: "Cancelled. Nothing was posted.", embeds: [], components: [] });
+    await interaction.update({ content: "Cancelled. Nothing was posted.", embeds: [], components: [], attachments: [] });
     return;
   }
 

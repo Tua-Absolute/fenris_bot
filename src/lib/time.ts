@@ -111,3 +111,10 @@ function addDays(p: { year: number; month: number; day: number }, days: number) 
 }
 
 export const DATE_HELP = 'Try something like "tomorrow 8pm", "fri 7:30pm", "11/14 8pm", or "2026-11-14 20:00".';
+
+/** Short local date for banners, e.g. "Fri Nov 14 · 8:00 PM". */
+export function formatShort(date: Date, timeZone: string): string {
+  const day = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short", month: "short", day: "numeric" }).format(date);
+  const time = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(date);
+  return `${day.replace(",", "")} · ${time}`;
+}

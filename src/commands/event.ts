@@ -11,8 +11,10 @@ import {
 } from "discord.js";
 import { config } from "../config.js";
 import { brandEmbed, colors, discordTime } from "../lib/brand.js";
+import { bannerStyleChoices, renderBanner } from "../lib/banner.js";
 import { download, isImage, UserError } from "../lib/files.js";
-import { DATE_HELP, parseDateTime } from "../lib/time.js";
+import { emblemFor } from "../lib/serverIcon.js";
+import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
 import type { Command } from "./types.js";
 
 const HOUR = 60 * 60 * 1000;
@@ -30,7 +32,8 @@ export const event: Command = {
         .addChannelTypes(ChannelType.GuildVoice, ChannelType.GuildStageVoice))
       .addStringOption((o) => o.setName("location").setDescription("Or a place / link, if not in a voice channel").setMaxLength(100))
       .addStringOption((o) => o.setName("description").setDescription("Details shown on the event").setMaxLength(1000))
-      .addAttachmentOption((o) => o.setName("cover").setDescription("Cover image for the event"))
+      .addAttachmentOption((o) => o.setName("cover").setDescription("Your own cover image for the event"))
+      .addStringOption((o) => o.setName("cover_style").setDescription("Or generate a cover with the name and date in this style").addChoices(...bannerStyleChoices))
       .addChannelOption((o) => o.setName("announce_in").setDescription("Also post an announcement with the event link here")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)))
     .addSubcommand((s) => s.setName("list").setDescription("Show upcoming events."))
@@ -64,7 +67,16 @@ export const event: Command = {
         privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
         entityType: GuildScheduledEventEntityType.External,
         entityMetadata: { location: interaction.options.getString("location") ?? "See event details" },
-        image: cover ? await download(cover) : undefined,
+        image: cover
+          ? await download(cover)
+          : interaction.options.getString("cover_style")
+            ? renderBanner({
+              title: interaction.options.getString("name", true),
+              subtitle: formatShort(start, tz),
+              style: interaction.options.getString("cover_style")!,
+              ...(await emblemFor(guild, "server")),
+            })
+            : undefined,
       };
       if (voice) {
         options.entityType = voice.type === ChannelType.GuildStageVoice
