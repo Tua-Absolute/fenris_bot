@@ -17,7 +17,7 @@ You need [Node.js 20+](https://nodejs.org/).
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and click **New Application**. Name it.
 2. On **General Information**, copy the **Application ID**.
 3. On **Bot**, click **Reset Token** and copy the token. Treat it like a password: never share or commit it.
-4. Still on **Bot**, turn on **Message Content Intent** (needed later for chat replies).
+4. Still on **Bot**, turn on **Server Members Intent** (welcome cards and auto-role) and **Message Content Intent** (chat replies), then **Save Changes**.
 
 ### 2. Configure
 ```bash
@@ -47,6 +47,10 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
 | `/fancy` | Everyone | Turns text into fancy Unicode fonts (bold, script, gothic, double-struck, small caps, bubble, wide, upside down, and more) with optional emoji dividers. Shows all styles to copy, or posts one. |
 | `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
+| `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. Other subcommands (mod log, tickets, levels, reminders, recap) switch on features as they arrive. |
+| `/roles` | Manage Roles | Posts a self-serve role panel: up to 15 roles as buttons. Members click to add a role and click again to remove it. Roles with admin or moderator permissions, and roles above Fenris's own role, are refused. |
+
+**Welcome cards:** with `/settings welcome` set, every new member gets a red and black card with their avatar, name, and member number, and the auto-role if you picked one. Fenris's role must sit above any role it hands out (Server Settings > Roles, drag Fenris up).
 
 **Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and your server's icon, or the Fenris wolf if the server has no icon). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
 

@@ -1,0 +1,93 @@
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  type GuildMember,
+  type GuildTextBasedChannel,
+  type Role,
+} from "discord.js";
+import { brandEmbed, colors } from "../lib/brand.js";
+import { UserError } from "../lib/files.js";
+import type { Command } from "./types.js";
+
+const MAX_ROLES = 15;
+
+// Roles with these permissions are never handed out by a button.
+const DANGEROUS = [
+  PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageRoles,
+  PermissionFlagsBits.ManageChannels, PermissionFlagsBits.BanMembers, PermissionFlagsBits.KickMembers,
+  PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ModerateMembers, PermissionFlagsBits.ManageWebhooks,
+  PermissionFlagsBits.MentionEveryone,
+];
+
+const builder = new SlashCommandBuilder()
+  .setName("roles")
+  .setDescription("Post a panel of buttons members click to give themselves roles.")
+  .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
+  .addStringOption((o) => o.setName("title").setDescription("Panel title, e.g. \"Pick your games\"").setRequired(true).setMaxLength(200));
+for (let i = 1; i <= MAX_ROLES; i++) {
+  builder.addRoleOption((o) => o.setName(`role${i}`).setDescription(`Role ${i}`).setRequired(i === 1));
+}
+builder.addStringOption((o) => o.setName("description").setDescription("Text above the buttons").setMaxLength(1000));
+
+function checkRole(role: Role, me: GuildMember): string | null {
+  if (role.managed || role.id === role.guild.id) return `${role.name} is managed by Discord or an integration.`;
+  if (DANGEROUS.some((p) => role.permissions.has(p))) return `${role.name} has moderator-level permissions, so I won't hand it out.`;
+  if (role.position >= me.roles.highest.position) return `${role.name} is above my highest role. Drag my role above it in Server Settings > Roles.`;
+  return null;
+}
+
+export const roles: Command = {
+  data: builder,
+
+  async execute(interaction) {
+    const guild = interaction.guild;
+    if (!guild) throw new UserError("This only works inside a server.");
+    const me = await guild.members.fetchMe();
+
+    const picked: Role[] = [];
+    for (let i = 1; i <= MAX_ROLES; i++) {
+      const r = interaction.options.getRole(`role${i}`);
+      if (r && !picked.some((p) => p.id === r.id)) picked.push(guild.roles.cache.get(r.id)!);
+    }
+    const problems = picked.map((r) => checkRole(r, me)).filter(Boolean);
+    if (problems.length) throw new UserError(problems.join("\n"));
+
+    const rows: ActionRowBuilder<ButtonBuilder>[] = [];
+    picked.forEach((role, i) => {
+      if (i % 5 === 0) rows.push(new ActionRowBuilder<ButtonBuilder>());
+      rows[rows.length - 1].addComponents(
+        new ButtonBuilder().setCustomId(`roles:${role.id}`).setLabel(role.name.slice(0, 80)).setStyle(ButtonStyle.Secondary));
+    });
+
+    const embed = brandEmbed(colors.red)
+      .setTitle(interaction.options.getString("title", true))
+      .setDescription(`${interaction.options.getString("description") ?? "Click a button to get a role. Click again to remove it."}\n\n` +
+        picked.map((r) => `• <@&${r.id}>`).join("\n"));
+    await interaction.reply({ content: "Posting the role panel…", flags: MessageFlags.Ephemeral });
+    await (interaction.channel as GuildTextBasedChannel).send({ embeds: [embed], components: rows });
+  },
+
+  async handleButton(interaction) {
+    const roleId = interaction.customId.split(":")[1];
+    const guild = interaction.guild!;
+    const role = guild.roles.cache.get(roleId);
+    const member = await guild.members.fetch(interaction.user.id);
+    const me = await guild.members.fetchMe();
+    const problem = role ? checkRole(role, me) : "That role no longer exists.";
+    if (problem) {
+      await interaction.reply({ content: `I can't change that role: ${problem}`, flags: MessageFlags.Ephemeral });
+      return;
+    }
+    if (member.roles.cache.has(roleId)) {
+      await member.roles.remove(roleId, "Role panel");
+      await interaction.reply({ content: `Removed <@&${roleId}>.`, flags: MessageFlags.Ephemeral });
+    } else {
+      await member.roles.add(roleId, "Role panel");
+      await interaction.reply({ content: `You now have <@&${roleId}>.`, flags: MessageFlags.Ephemeral });
+    }
+  },
+};

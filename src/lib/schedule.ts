@@ -4,7 +4,7 @@ import type { Client, GuildTextBasedChannel } from "discord.js";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { rename, unlink, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { buildAnnouncement, type AnnouncementData } from "./announcement.js";
 
 export interface ScheduledAnnouncement {
@@ -16,7 +16,8 @@ export interface ScheduledAnnouncement {
   attempts?: number;
 }
 
-export const dataDir = resolve(process.env.DATA_DIR?.trim() || "data");
+import { dataDir } from "./store.js";
+export { dataDir };
 const file = join(dataDir, "schedule.json");
 mkdirSync(join(dataDir, "images"), { recursive: true });
 

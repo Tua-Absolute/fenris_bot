@@ -15,6 +15,12 @@ const permissions = [
   p.SendPolls,
   p.CreateEvents,
   p.ManageEvents,
+  p.ManageRoles, // auto-role and role panels
+  p.ManageMessages, // /purge and pinning
+  p.ModerateMembers, // /timeout
+  p.ManageGuild, // AutoMod rules
+  p.ManageChannels, // support tickets
+  p.ViewAuditLog, // mod log
 ].reduce((a, b) => a | b, 0n);
 
 const url = new URL("https://discord.com/oauth2/authorize");
