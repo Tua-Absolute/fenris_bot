@@ -55,6 +55,7 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/automod setup` / `status` / `off` | Manage Server | Turns on Discord's own AutoMod: profanity and slur filter, invite-link blocking, spam detection, a mention limit, and your own blocked words. Discord enforces these even if Fenris is offline. |
 | `/catchup` | Everyone | Claude privately sums up what you missed in a channel: since your last message, or the past N hours. |
 | `/recap` | Manage Server | Claude posts a recap of the past 7 days across the server, with a banner, right now. |
+| `/ticket panel` / `open` / `close` / `add` | Everyone (panel: Manage Server) | Support tickets. The panel's **Open a ticket** button asks what's wrong, then opens a private channel for that member and your staff role. Closing saves a transcript to the mod log and DMs a copy to the member. |
 
 **Mod log:** pick a channel with `/settings modlog` and Fenris posts deleted and edited messages, joins (flagging brand-new accounts), leaves, bans, unbans, and every `/warn`, `/timeout`, `/purge`, and AutoMod block there.
 

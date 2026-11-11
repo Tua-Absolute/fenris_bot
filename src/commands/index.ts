@@ -12,11 +12,12 @@ import { recap } from "./recap.js";
 import { roles } from "./roles.js";
 import { schedule } from "./schedule.js";
 import { settings } from "./settings.js";
+import { ticket } from "./ticket.js";
 import { timeout } from "./timeout.js";
 import type { Command } from "./types.js";
 import { warn } from "./warn.js";
 
 // Add each new command here; they register automatically when the bot starts.
-const all: Command[] = [ping, announce, schedule, event, poll, banner, fancyCommand, settings, roles, warn, timeout, purge, automod, catchup, recap];
+const all: Command[] = [ping, announce, schedule, event, poll, banner, fancyCommand, settings, roles, warn, timeout, purge, automod, catchup, recap, ticket];
 
 export const commands = new Collection<string, Command>(all.map((c) => [c.data.name, c]));
