@@ -53,15 +53,20 @@ builder.addStringOption((o) => o.setName("button_color").setDescription("Button 
 builder.addStringOption((o) => o.setName("emojis")
   .setDescription("An emoji for each role, in order, split with |  e.g. 🏐 | 🐤 | :my_emoji:").setMaxLength(1000));
 builder.addBooleanOption((o) => o.setName("pick_one").setDescription("Members can hold only one role from this panel (picking one swaps out the other)"));
+builder.addRoleOption((o) => o.setName("required_role").setDescription("Only members with this role can use the panel"));
 const MAX_EXCLUDE = 3;
 for (let i = 1; i <= MAX_EXCLUDE; i++) {
   builder.addRoleOption((o) => o.setName(`exclude${i}`).setDescription(`Members with this role can't use the panel${i === 1 ? " (e.g. Muted or Unverified)" : ""}`));
 }
 
-// Button IDs carry the panel's rules so they keep working after restarts: roles:<roleId>:<1 if pick one>:<excluded ids>
+// Button IDs carry the panel's rules so they keep working after restarts:
+// roles:<roleId>:<1 if pick one>:<excluded ids>:<required id>. Rule ids are base 36 to fit Discord's 100-character limit
+// (older panels used plain decimal ids, which still work).
+const packId = (id: string) => BigInt(id).toString(36);
+const unpackId = (s: string) => (/^\d{15,}$/.test(s) ? s : [...s].reduce((n, c) => n * 36n + BigInt(parseInt(c, 36)), 0n).toString());
 function parseId(customId: string) {
-  const [, roleId, one = "", ex = ""] = customId.split(":");
-  return { roleId, pickOne: one === "1", excluded: ex ? ex.split(",") : [] };
+  const [, roleId, one = "", ex = "", req = ""] = customId.split(":");
+  return { roleId, pickOne: one === "1", excluded: ex ? ex.split(",").map(unpackId) : [], required: req ? unpackId(req) : undefined };
 }
 
 type Emoji = string | { id: string; name: string; animated: boolean };
@@ -91,6 +96,7 @@ interface PanelSpec {
   color: string; // red | blurple | green | grey | mix
   pickOne: boolean;
   excluded: string[];
+  required?: string;
 }
 
 /** Builds the embed and buttons for a role panel. Throws a UserError when something can't be used. */
@@ -98,13 +104,16 @@ function buildPanel(guild: Guild, spec: PanelSpec): { embed: ReturnType<typeof b
   if (!spec.roles.length) throw new UserError("A role panel needs at least one role.");
   if (spec.roles.length > MAX_ROLES) throw new UserError(`A role panel can have up to ${MAX_ROLES} roles.`);
   if (spec.excluded.some((id) => spec.roles.some((r) => r.role.id === id))) throw new UserError("A role can't be both on the panel and excluded.");
+  if (spec.required && (spec.excluded.includes(spec.required) || spec.roles.some((r) => r.role.id === spec.required))) {
+    throw new UserError("The required role can't also be on the panel or excluded.");
+  }
   if (!(spec.color in STYLES) && spec.color !== "mix") throw new UserError("Button color must be red, blurple, green, grey, or mix.");
   // Typed emoji, or the role's own icon emoji if it has one.
   const emojis = spec.roles.map((r) => resolveEmoji(guild, r.emoji) ?? (r.role.unicodeEmoji || null));
   const bad = spec.roles.map((r, i) => (r.emoji && !emojis[i] ? r.emoji : null)).filter(Boolean);
   if (bad.length) throw new UserError(`I couldn't use ${bad.join(", ")} as emoji. Use normal emoji or this server's custom emoji like :name:.`);
 
-  const suffix = `:${spec.pickOne ? "1" : ""}:${spec.excluded.join(",")}`;
+  const suffix = `:${spec.pickOne ? "1" : ""}:${spec.excluded.map(packId).join(",")}:${spec.required ? packId(spec.required) : ""}`;
   const rows: ActionRowBuilder<ButtonBuilder>[] = [];
   spec.roles.forEach(({ role }, i) => {
     if (i % 5 === 0) rows.push(new ActionRowBuilder<ButtonBuilder>());
@@ -119,7 +128,8 @@ function buildPanel(guild: Guild, spec: PanelSpec): { embed: ReturnType<typeof b
       ? "Click a button to pick your role. Picking another swaps it."
       : "Click a button to get a role. Click again to remove it.")}\n\n` +
     spec.roles.map((r, i) => `${emojis[i] ? emojiMarkup(emojis[i]!) : "•"} <@&${r.role.id}>${r.note ? ` — ${r.note.slice(0, 200)}` : ""}`).join("\n") +
-    (spec.excluded.length ? `\n\n*Not available to ${spec.excluded.map((id) => `<@&${id}>`).join(", ")}.*` : "")).slice(0, 4096));
+    (spec.required ? `\n\n*Only for <@&${spec.required}>.*` : "") +
+    (spec.excluded.length ? `\n${spec.required ? "" : "\n"}*Not available to ${spec.excluded.map((id) => `<@&${id}>`).join(", ")}.*` : "")).slice(0, 4096));
   return { embed, rows };
 }
 
@@ -165,16 +175,21 @@ export const roles: Command = {
       color: interaction.options.getString("button_color") ?? "grey",
       pickOne,
       excluded,
+      required: interaction.options.getRole("required_role")?.id,
     });
     await interaction.reply({ content: "Posting the role panel…", flags: MessageFlags.Ephemeral });
     await (interaction.channel as GuildTextBasedChannel).send({ embeds: [embed], components: rows });
   },
 
   async handleButton(interaction) {
-    const { roleId, pickOne, excluded } = parseId(interaction.customId);
+    const { roleId, pickOne, excluded, required } = parseId(interaction.customId);
     const guild = interaction.guild!;
     const role = guild.roles.cache.get(roleId);
     const member = await guild.members.fetch(interaction.user.id);
+    if (required && !member.roles.cache.has(required)) {
+      await interaction.reply({ content: `This panel is only for members with <@&${required}>.`, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
+      return;
+    }
     const blockedBy = excluded.find((id) => member.roles.cache.has(id));
     if (blockedBy) {
       await interaction.reply({ content: `Members with <@&${blockedBy}> can't use this panel.`, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
@@ -214,16 +229,16 @@ const DEFAULT_TEXTS = [
 ];
 const STYLE_NAMES: Record<number, string> = { [ButtonStyle.Danger]: "red", [ButtonStyle.Primary]: "blurple", [ButtonStyle.Success]: "green", [ButtonStyle.Secondary]: "grey" };
 
-interface ButtonInfo { roleId: string; label: string; emoji?: string; style: number; pickOne: boolean; excluded: string[] }
+interface ButtonInfo { roleId: string; label: string; emoji?: string; style: number; pickOne: boolean; excluded: string[]; required?: string }
 
 function panelButtons(message: Message): ButtonInfo[] {
   const out: ButtonInfo[] = [];
   for (const row of message.components.map((r) => r.toJSON()) as { components?: { custom_id?: string; label?: string; style: number; emoji?: { id?: string | null; name?: string | null; animated?: boolean } }[] }[]) {
     for (const c of row.components ?? []) {
       if (!c.custom_id?.startsWith("roles:")) continue;
-      const { roleId, pickOne, excluded } = parseId(c.custom_id);
+      const { roleId, pickOne, excluded, required } = parseId(c.custom_id);
       const emoji = c.emoji?.id ? `<${c.emoji.animated ? "a" : ""}:${c.emoji.name}:${c.emoji.id}>` : c.emoji?.name ?? undefined;
-      out.push({ roleId, label: c.label ?? "", emoji, style: c.style, pickOne, excluded });
+      out.push({ roleId, label: c.label ?? "", emoji, style: c.style, pickOne, excluded, required });
     }
   }
   return out;
@@ -251,7 +266,8 @@ export function readPanel(message: Message) {
       .join(" | ").replace(/( \| )+$/, "")).join("\n"),
     color: styles.size === 1 ? STYLE_NAMES[buttons[0].style] ?? "grey" : "mix",
     settings: `pick one: ${buttons[0]?.pickOne ? "yes" : "no"}; exclude: ${(buttons[0]?.excluded ?? [])
-      .map((id) => guild.roles.cache.get(id)?.name ?? id).join(", ")}`,
+      .map((id) => guild.roles.cache.get(id)?.name ?? id).join(", ")}; only for: ${buttons[0]?.required
+      ? guild.roles.cache.get(buttons[0].required)?.name ?? buttons[0].required : ""}`,
   };
 }
 
@@ -295,7 +311,7 @@ export const editRolePanel: MessageMenu = {
         field("description", "Description (empty = default text)", TextInputStyle.Paragraph, cur.description, 1000, false),
         field("roles", "Roles: one per line, Name | emoji | note", TextInputStyle.Paragraph, cur.roles, 4000, true, "Gamer | 🎮 | Pinged for game nights"),
         field("color", "Button color: red, blurple, green, grey, mix", TextInputStyle.Short, cur.color, 10, true),
-        field("settings", "Settings", TextInputStyle.Short, cur.settings, 300, false, "pick one: no; exclude: Muted, Unverified"),
+        field("settings", "Settings", TextInputStyle.Short, cur.settings, 300, false, "pick one: no; exclude: Muted; only for: Member"),
       ));
   },
 };
@@ -324,6 +340,9 @@ roles.handleModal = async (interaction) => {
   const settings = get("settings");
   const pickOne = /pick\s*one\s*:\s*(yes|y|true|on)\b/i.test(settings);
   const excludeText = settings.match(/exclude\s*:\s*([^;]*)/i)?.[1] ?? "";
+  const requiredText = (settings.match(/only\s*for\s*:\s*([^;]*)/i)?.[1] ?? "").trim();
+  const requiredRole = requiredText ? findRole(guild, requiredText) : undefined;
+  if (requiredText && !requiredRole) throw new UserError(`I couldn't find the role "${requiredText}" for "only for".`);
   const excluded: string[] = [];
   for (const name of excludeText.split(",").map((n) => n.trim()).filter(Boolean)) {
     const role = findRole(guild, name);
@@ -333,7 +352,7 @@ roles.handleModal = async (interaction) => {
 
   const { embed, rows } = buildPanel(guild, {
     title: get("title"), description: get("description") || undefined, roles: rolesList,
-    color: get("color").toLowerCase(), pickOne, excluded,
+    color: get("color").toLowerCase(), pickOne, excluded, required: requiredRole?.id,
   });
   await message.edit({ embeds: [embed], components: rows });
   await interaction.reply({ content: `Updated the role panel: ${message.url}`, flags: MessageFlags.Ephemeral });
