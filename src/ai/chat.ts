@@ -153,8 +153,8 @@ export async function handleChatButton(interaction: ButtonInteraction) {
 
   await interaction.deferUpdate();
   try {
-    const url = await execute(interaction.guild!, p.action);
-    await interaction.editReply({ content: `Done! ${url}`, components: [] });
+    const result = await execute(interaction.guild!, p.action, interaction.user.id);
+    await interaction.editReply({ content: result, components: [] });
   } catch (error) {
     const text = error instanceof UserError ? error.message : "Discord wouldn't let me do that. Check my permissions in that channel.";
     if (!(error instanceof UserError)) console.error("chat action failed:", error);

@@ -39,11 +39,13 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | Command | Who can use it | What it does |
 |---|---|---|
 | `/ping` | Everyone | Checks the bot is online. |
-| `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, color, banner image, @here/@everyone, a role ping, and a link button. |
+| `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, `when` (schedule it for later), color, `title_font`, emoji `divider`, banner image or generated banner, @here/@everyone, a role ping, and a link button. Type `:emoji_name:` in the message to use your server's custom emoji. |
+| `/schedule list` / `/schedule cancel` | Manage Messages | See or cancel announcements waiting to be posted. |
 | `/event create` | Manage Events | Adds an event to the server calendar. `start` understands things like `fri 8pm`, `tomorrow 7:30pm`, `11/14 8pm`, or `2026-11-14 20:00`. Can use a voice channel or a place/link, a cover image, and post an announcement with the event link. |
 | `/event list` | Manage Events | Shows upcoming events with times in each viewer's own time zone. |
 | `/event cancel` | Manage Events | Cancels an event (pick it from the suggestions). |
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
+| `/fancy` | Everyone | Turns text into fancy Unicode fonts (bold, script, gothic, double-struck, small caps, bubble, wide, upside down, and more) with optional emoji dividers. Shows all styles to copy, or posts one. |
 | `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
 
 **Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and your server's icon, or the Fenris wolf if the server has no icon). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
@@ -56,7 +58,7 @@ The bot registers its slash commands every time it starts, so new commands appea
 
 ## Claude chat (optional)
 
-Mention Fenris (or reply to one of its messages) and it answers using Claude, with the last 20 messages of the channel as context. Ask it things like *"@Fenris announce game night Friday at 8 in #general and make an event for it"* and it drafts the post, shows a preview, and waits for you to press **Confirm**. Only the person who asked can confirm, and they need the same permission the slash command would need.
+Mention Fenris (or reply to one of its messages) and it answers using Claude (it can also schedule announcements and use fancy fonts and dividers when asked), with the last 20 messages of the channel as context. Ask it things like *"@Fenris announce game night Friday at 8 in #general and make an event for it"* and it drafts the post, shows a preview, and waits for you to press **Confirm**. Only the person who asked can confirm, and they need the same permission the slash command would need.
 
 To turn it on:
 1. At [console.anthropic.com](https://console.anthropic.com/), add some prepaid credit, then create a key under **API Keys**.
@@ -76,6 +78,8 @@ Fenris is set up to run on [Railway](https://railway.com/) (about $5/month on th
 5. **Stop the copy on your computer** (Ctrl+C in its terminal). If both run at once, Fenris answers everything twice.
 
 No domain or port is needed, since the bot connects out to Discord.
+
+6. **For scheduled announcements:** right-click the service on the project canvas (or use the command palette) and choose **Attach Volume**, with mount path `/app/data`. That's where schedules are saved. Without a volume, anything scheduled is lost whenever Railway redeploys.
 
 **Updating:** every time a pull request is merged into `main`, Railway rebuilds and restarts Fenris on its own, and the bot re-registers its slash commands at startup. To change a setting (like `CLAUDE_MODEL`), edit it in the Variables tab.
 
