@@ -1,4 +1,6 @@
 import type {
+  ContextMenuCommandBuilder,
+  MessageContextMenuCommandInteraction,
   AutocompleteInteraction,
   ButtonInteraction,
   ChatInputCommandInteraction,
@@ -17,4 +19,10 @@ export interface Command {
   handleModal?: (interaction: ModalSubmitInteraction) => Promise<void>;
   /** Handles buttons whose customId starts with "<command name>:". */
   handleButton?: (interaction: ButtonInteraction) => Promise<void>;
+}
+
+/** A right-click (Apps) command on a message. */
+export interface MessageMenu {
+  data: ContextMenuCommandBuilder;
+  execute: (interaction: MessageContextMenuCommandInteraction) => Promise<void>;
 }
