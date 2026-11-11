@@ -19,3 +19,10 @@ test("text is escaped and the same title gives the same art", () => {
   assert.ok(svg.includes("A &lt; B &amp; C"));
   assert.equal(bannerSvg({ title: "Same" }), bannerSvg({ title: "Same" }));
 });
+
+test("a custom emblem image (server icon) is embedded", () => {
+  const icon = renderBanner({ title: "x", width: 200, height: 200, logo: false });
+  const svg = bannerSvg({ title: "With icon", emblemImage: icon });
+  assert.ok(svg.includes("data:image/png;base64,"));
+  assert.equal(renderBanner({ title: "With icon", emblemImage: icon }).subarray(1, 4).toString(), "PNG");
+});

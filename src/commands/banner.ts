@@ -1,5 +1,6 @@
 import { AttachmentBuilder, SlashCommandBuilder } from "discord.js";
 import { bannerStyleChoices, renderBanner } from "../lib/banner.js";
+import { emblemChoices, emblemFor } from "../lib/serverIcon.js";
 import type { Command } from "./types.js";
 
 export const banner: Command = {
@@ -9,7 +10,7 @@ export const banner: Command = {
     .addStringOption((o) => o.setName("title").setDescription("Big text on the banner").setRequired(true).setMaxLength(90))
     .addStringOption((o) => o.setName("subtitle").setDescription("Smaller line under the title, e.g. a date").setMaxLength(60))
     .addStringOption((o) => o.setName("style").setDescription("Color style (default: Fenris red & black)").addChoices(...bannerStyleChoices))
-    .addBooleanOption((o) => o.setName("logo").setDescription("Show the Fenris wolf emblem (default: yes)")),
+    .addStringOption((o) => o.setName("emblem").setDescription("Picture on the right (default: the server icon)").addChoices(...emblemChoices)),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -17,7 +18,7 @@ export const banner: Command = {
       title: interaction.options.getString("title", true),
       subtitle: interaction.options.getString("subtitle") ?? undefined,
       style: interaction.options.getString("style") ?? "fenris",
-      logo: interaction.options.getBoolean("logo") ?? true,
+      ...(await emblemFor(interaction.guild!, interaction.options.getString("emblem"))),
     });
     await interaction.editReply({ files: [new AttachmentBuilder(png, { name: "banner.png" })] });
   },

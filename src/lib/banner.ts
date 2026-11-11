@@ -24,7 +24,10 @@ export interface BannerOptions {
   style?: string;
   width?: number;
   height?: number;
+  /** Show an emblem on the right (default true). */
   logo?: boolean;
+  /** PNG/JPG/WebP image (e.g. the server icon) to use as the emblem instead of the Fenris wolf. */
+  emblemImage?: Buffer;
 }
 
 // Small seeded random generator so the same title always gives the same art.
@@ -153,9 +156,19 @@ export function bannerSvg(opts: BannerOptions): string {
     : "";
 
   const logoSize = H * 0.78;
-  const logoSvg = logo
-    ? `<g transform="translate(${W - logoSize - W * 0.05} ${(H - logoSize) / 2}) scale(${logoSize / 512})">${emblemSvg()}</g>`
-    : "";
+  const lx = W - logoSize - W * 0.05, ly = (H - logoSize) / 2;
+  const r = logoSize / 2, cx = lx + r, cy = ly + r;
+  let logoSvg = "";
+  if (logo && opts.emblemImage) {
+    // Custom emblem (server icon): clipped to a circle with a ring in the style's color.
+    const mime = sniffMime(opts.emblemImage);
+    logoSvg = `<clipPath id="bn-clip"><circle cx="${cx}" cy="${cy}" r="${r * 0.9}"/></clipPath>
+      <circle cx="${cx}" cy="${cy}" r="${r * 0.97}" fill="${s.dark}"/>
+      <image href="data:${mime};base64,${opts.emblemImage.toString("base64")}" x="${cx - r * 0.9}" y="${cy - r * 0.9}" width="${r * 1.8}" height="${r * 1.8}" preserveAspectRatio="xMidYMid slice" clip-path="url(#bn-clip)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r * 0.93}" fill="none" stroke="${s.hi}" stroke-width="${r * 0.04}"/>`;
+  } else if (logo) {
+    logoSvg = `<g transform="translate(${lx} ${ly}) scale(${logoSize / 512})">${emblemSvg()}</g>`;
+  }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
@@ -172,6 +185,14 @@ export function bannerSvg(opts: BannerOptions): string {
   ${titleSvg}
   ${subSvg}
 </svg>`;
+}
+
+function sniffMime(buf: Buffer): string {
+  if (buf.subarray(0, 4).toString("hex") === "89504e47") return "image/png";
+  if (buf.subarray(0, 3).toString("hex") === "ffd8ff") return "image/jpeg";
+  if (buf.subarray(0, 4).toString() === "GIF8") return "image/gif";
+  if (buf.subarray(8, 12).toString() === "WEBP") return "image/webp";
+  return "image/png";
 }
 
 /** Renders a banner to PNG bytes. */

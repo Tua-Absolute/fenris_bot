@@ -15,6 +15,7 @@ import { config } from "../config.js";
 import { bannerStyles, renderBanner } from "../lib/banner.js";
 import { brandEmbed, colorFor, colors, discordTime } from "../lib/brand.js";
 import { UserError } from "../lib/files.js";
+import { serverIcon } from "../lib/serverIcon.js";
 import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
 
 export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string }
@@ -112,12 +113,16 @@ function announcementEmbed(guild: Guild, a: AnnouncementInput): EmbedBuilder {
     .setDescription(a.body.slice(0, 4000));
 }
 
-function announcementArt(guild: Guild, a: AnnouncementInput): Buffer | null {
-  return wantsArt(a.banner_style) ? renderBanner({ title: a.title, subtitle: guild.name, style: a.banner_style }) : null;
+async function announcementArt(guild: Guild, a: AnnouncementInput): Promise<Buffer | null> {
+  if (!wantsArt(a.banner_style)) return null;
+  return renderBanner({ title: a.title, subtitle: guild.name, style: a.banner_style, emblemImage: await serverIcon(guild) });
 }
 
-function eventArt(e: EventInput, start: Date): Buffer | null {
-  return wantsArt(e.cover_style) ? renderBanner({ title: e.name, subtitle: formatShort(start, config.timezone()), style: e.cover_style }) : null;
+async function eventArt(guild: Guild, e: EventInput, start: Date): Promise<Buffer | null> {
+  if (!wantsArt(e.cover_style)) return null;
+  return renderBanner({
+    title: e.name, subtitle: formatShort(start, config.timezone()), style: e.cover_style, emblemImage: await serverIcon(guild),
+  });
 }
 
 function withArt(embed: EmbedBuilder, art: Buffer | null): { embed: EmbedBuilder; files: AttachmentBuilder[] } {
@@ -127,13 +132,13 @@ function withArt(embed: EmbedBuilder, art: Buffer | null): { embed: EmbedBuilder
 }
 
 /** Checks the proposal and builds the preview shown above the Confirm button. */
-export function preview(guild: Guild, action: Action): { summary: string; embed: EmbedBuilder; files: AttachmentBuilder[] } {
+export async function preview(guild: Guild, action: Action): Promise<{ summary: string; embed: EmbedBuilder; files: AttachmentBuilder[] }> {
   switch (action.kind) {
     case "announcement": {
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
       const ping = a.ping && a.ping !== "none" ? ` and ping @${a.ping}` : "";
-      return { summary: `Post this announcement in <#${ch.id}>${ping}?`, ...withArt(announcementEmbed(guild, a), announcementArt(guild, a)) };
+      return { summary: `Post this announcement in <#${ch.id}>${ping}?`, ...withArt(announcementEmbed(guild, a), await announcementArt(guild, a)) };
     }
     case "event": {
       const e = action.input;
@@ -148,7 +153,7 @@ export function preview(guild: Guild, action: Action): { summary: string; embed:
           "",
           `**When:** ${discordTime(start)} (${e.hours || 2} h)`,
           `**Where:** ${where}`,
-        ].join("\n")), eventArt(e, start)),
+        ].join("\n")), await eventArt(guild, e, start)),
       };
     }
     case "poll": {
@@ -173,7 +178,7 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
       const ping = a.ping === "here" || a.ping === "everyone";
-      const { embed, files } = withArt(announcementEmbed(guild, a), announcementArt(guild, a));
+      const { embed, files } = withArt(announcementEmbed(guild, a), await announcementArt(guild, a));
       const msg = await ch.send({
         content: ping ? `@${a.ping}` : undefined,
         embeds: [embed],
@@ -194,7 +199,7 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
         scheduledStartTime: start,
         scheduledEndTime: end,
         privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
-        image: eventArt(e, start) ?? undefined,
+        image: (await eventArt(guild, e, start)) ?? undefined,
         ...(isVoice
           ? {
             entityType: voice!.type === ChannelType.GuildStageVoice

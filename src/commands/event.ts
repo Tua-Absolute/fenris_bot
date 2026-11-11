@@ -13,6 +13,7 @@ import { config } from "../config.js";
 import { brandEmbed, colors, discordTime } from "../lib/brand.js";
 import { bannerStyleChoices, renderBanner } from "../lib/banner.js";
 import { download, isImage, UserError } from "../lib/files.js";
+import { emblemFor } from "../lib/serverIcon.js";
 import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
 import type { Command } from "./types.js";
 
@@ -73,6 +74,7 @@ export const event: Command = {
               title: interaction.options.getString("name", true),
               subtitle: formatShort(start, tz),
               style: interaction.options.getString("cover_style")!,
+              ...(await emblemFor(guild, "server")),
             })
             : undefined,
       };

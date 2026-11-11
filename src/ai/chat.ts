@@ -111,7 +111,7 @@ async function onMessage(message: Message, client: Client<true>) {
       return;
     }
 
-    const { summary, embed, files } = preview(message.guild, result.action);
+    const { summary, embed, files } = await preview(message.guild, result.action);
     const id = randomUUID();
     for (const [key, p] of pending) if (p.expires < now) pending.delete(key);
     pending.set(id, { action: result.action, userId: message.author.id, expires: now + PENDING_TTL_MS });

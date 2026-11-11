@@ -17,6 +17,7 @@ import {
 import { brandEmbed, colorChoices, colorFor } from "../lib/brand.js";
 import { bannerStyleChoices, renderBanner } from "../lib/banner.js";
 import { download, isImage, UserError } from "../lib/files.js";
+import { emblemFor } from "../lib/serverIcon.js";
 import type { Command } from "./types.js";
 
 interface Pending {
@@ -126,7 +127,10 @@ export const announce: Command = {
       message.files = [new AttachmentBuilder(await download(p.image), { name })];
       embed.setImage(`attachment://${name}`);
     } else if (p.bannerStyle) {
-      const png = renderBanner({ title: interaction.fields.getTextInputValue("title"), subtitle: guild.name, style: p.bannerStyle });
+      const png = renderBanner({
+        title: interaction.fields.getTextInputValue("title"), subtitle: guild.name, style: p.bannerStyle,
+        ...(await emblemFor(guild, "server")),
+      });
       message.files = [new AttachmentBuilder(png, { name: "banner.png" })];
       embed.setImage("attachment://banner.png");
     }

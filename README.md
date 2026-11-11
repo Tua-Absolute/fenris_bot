@@ -44,9 +44,9 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/event list` | Manage Events | Shows upcoming events with times in each viewer's own time zone. |
 | `/event cancel` | Manage Events | Cancels an event (pick it from the suggestions). |
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
-| `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles. |
+| `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
 
-**Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and the Fenris emblem). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
+**Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and your server's icon, or the Fenris wolf if the server has no icon). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
 
 ![Example banner](assets/branding/example-banner.png)
 
