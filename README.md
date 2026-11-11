@@ -4,8 +4,8 @@ An all-in-one bot for running a Discord server: eye-catching announcements, Disc
 
 ## Roadmap
 
-1. **Foundation** (this step): project setup, slash command framework, `/ping`, invite link.
-2. **Management commands**: `/announce` (styled embeds, scheduled posts), `/event` (Discord scheduled events), `/poll` (native Discord polls).
+1. **Foundation** (done): project setup, slash command framework, `/ping`, invite link.
+2. **Management commands** (done): `/announce`, `/event`, `/poll`. Scheduled posting comes later, once the bot has storage.
 3. **Claude in chat**: mention the bot to talk to it; plain-English requests turn into actions after a confirm button.
 4. **Asset generation**: banner and cover images built from templates. Paid image models (Gemini, ChatGPT) are deliberately left out for now.
 
@@ -33,6 +33,21 @@ npm run deploy-commands   # registers the slash commands in your server
 npm run dev               # starts the bot (auto-restarts on code changes)
 ```
 Type `/ping` in your server. A "Pong!" embed means everything works.
+
+## Commands
+
+| Command | Who can use it | What it does |
+|---|---|---|
+| `/ping` | Everyone | Checks the bot is online. |
+| `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, color, banner image, @here/@everyone, a role ping, and a link button. |
+| `/event create` | Manage Events | Adds an event to the server calendar. `start` understands things like `fri 8pm`, `tomorrow 7:30pm`, `11/14 8pm`, or `2026-11-14 20:00`. Can use a voice channel or a place/link, a cover image, and post an announcement with the event link. |
+| `/event list` | Manage Events | Shows upcoming events with times in each viewer's own time zone. |
+| `/event cancel` | Manage Events | Cancels an event (pick it from the suggestions). |
+| `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
+
+Times typed into commands are read in the `TIMEZONE` from `.env` (default `America/Chicago`). You can change who sees each command in Server Settings > Integrations > Fenris.
+
+**After pulling new commands, run `npm run deploy-commands` again** so Discord knows about them.
 
 ## Running it 24/7
 
