@@ -19,9 +19,9 @@ import { addScheduled } from "../lib/schedule.js";
 import { brandEmbed, colorFor, colors, discordTime } from "../lib/brand.js";
 import { UserError } from "../lib/files.js";
 import { serverIcon } from "../lib/serverIcon.js";
-import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
+import { DATE_HELP, formatShort, parseDateTime, repeatLabel, type Repeat } from "../lib/time.js";
 
-export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string; title_font?: string; divider?: string; post_at?: string }
+export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string; title_font?: string; divider?: string; post_at?: string; repeat?: string }
 export interface EventInput { name: string; start: string; hours?: number; location?: string; voice_channel_id?: string; description?: string; cover_style?: string }
 
 const styleEnum = ["none", ...Object.keys(bannerStyles)];
@@ -51,8 +51,9 @@ export const tools: Anthropic.Beta.BetaTool[] = [
         title_font: { type: "string", enum: ["none", ...Object.keys(fonts)], description: "Fancy Unicode font for the title. Use none unless the user asks for a fancy font or a very hype announcement; never upside_down unless asked." },
         divider: { type: "string", enum: Object.keys(dividers), description: "Emoji divider above and below the body. none unless it suits a big announcement or the user asks." },
         post_at: { type: "string", description: "Empty string to post right away. To schedule, the server-local time formatted exactly YYYY-MM-DD HH:MM (24-hour)." },
+        repeat: { type: "string", enum: ["none", "daily", "weekly", "biweekly", "monthly"], description: "Make it recurring (needs post_at for the first post). none unless the user asks for a repeating announcement." },
       },
-      required: ["channel_id", "title", "body", "color", "ping", "banner_style", "title_font", "divider", "post_at"],
+      required: ["channel_id", "title", "body", "color", "ping", "banner_style", "title_font", "divider", "post_at", "repeat"],
     },
   },
   {
@@ -125,9 +126,14 @@ function announcementData(a: AnnouncementInput): AnnouncementData {
   };
 }
 
+const repeatOf = (a: AnnouncementInput) => (a.repeat && a.repeat !== "none" ? a.repeat as Repeat : undefined);
+
 /** When the announcement should go out, or null for right away. Throws if the time is unusable. */
 function postTime(a: AnnouncementInput): Date | null {
-  if (!a.post_at?.trim()) return null;
+  if (!a.post_at?.trim()) {
+    if (repeatOf(a)) throw new UserError("A repeating announcement needs a time for its first post.");
+    return null;
+  }
   const at = parseDateTime(a.post_at, config.timezone());
   if (!at) throw new UserError(`I couldn't work out when to post it. ${DATE_HELP}`);
   if (at.getTime() < Date.now()) throw new UserError("That posting time is in the past.");
@@ -157,7 +163,8 @@ export async function preview(guild: Guild, action: Action): Promise<{ summary: 
       const at = postTime(a);
       const { message, embed } = await buildAnnouncement(guild, announcementData(a));
       const files = (message.files ?? []) as AttachmentBuilder[];
-      const when = at ? `Schedule this announcement for ${discordTime(at)} in <#${ch.id}>${ping}?` : `Post this announcement in <#${ch.id}>${ping}?`;
+      const again = repeatOf(a) ? `, then ${repeatLabel(repeatOf(a))}` : "";
+      const when = at ? `Schedule this announcement for ${discordTime(at)}${again} in <#${ch.id}>${ping}?` : `Post this announcement in <#${ch.id}>${ping}?`;
       return { summary: when, embed, files };
     }
     case "event": {
@@ -199,8 +206,8 @@ export async function execute(guild: Guild, action: Action, userId: string): Pro
       const ch = textChannel(guild, a.channel_id);
       const at = postTime(a);
       if (at) {
-        const item = await addScheduled(guild.id, userId, at, announcementData(a));
-        return `Scheduled for ${discordTime(at)} (${discordTime(at, "R")}). ID \`${item.id}\`, manage it with \`/schedule\`.`;
+        const item = await addScheduled(guild.id, userId, at, announcementData(a), repeatOf(a));
+        return `Scheduled for ${discordTime(at)} (${discordTime(at, "R")})${repeatOf(a) ? `, then ${repeatLabel(repeatOf(a))}` : ""}. ID \`${item.id}\`, manage it with \`/schedule\`.`;
       }
       const { message } = await buildAnnouncement(guild, announcementData(a));
       const msg = await ch.send(message);

@@ -5,7 +5,9 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { config } from "../config.js";
 import { buildAnnouncement, type AnnouncementData } from "./announcement.js";
+import { nextRepeat, type Repeat } from "./time.js";
 
 export interface ScheduledAnnouncement {
   id: string;
@@ -13,6 +15,8 @@ export interface ScheduledAnnouncement {
   createdBy: string;
   postAt: number;
   data: AnnouncementData;
+  /** Posts again on this cycle instead of being removed. */
+  repeat?: Repeat;
   attempts?: number;
 }
 
@@ -35,8 +39,8 @@ export async function saveImage(bytes: Buffer, ext: string): Promise<string> {
   return path;
 }
 
-export async function addScheduled(guildId: string, createdBy: string, postAt: Date, data: AnnouncementData) {
-  const item: ScheduledAnnouncement = { id: randomUUID().slice(0, 8), guildId, createdBy, postAt: postAt.getTime(), data };
+export async function addScheduled(guildId: string, createdBy: string, postAt: Date, data: AnnouncementData, repeat?: Repeat) {
+  const item: ScheduledAnnouncement = { id: randomUUID().slice(0, 8), guildId, createdBy, postAt: postAt.getTime(), data, ...(repeat ? { repeat } : {}) };
   items.push(item);
   items.sort((a, b) => a.postAt - b.postAt);
   await save();
@@ -58,6 +62,13 @@ export async function removeScheduled(id: string): Promise<ScheduledAnnouncement
 
 const MAX_ATTEMPTS = 3;
 
+async function reschedule(item: ScheduledAnnouncement) {
+  item.postAt = nextRepeat(new Date(item.postAt), item.repeat!, config.timezone()).getTime();
+  item.attempts = 0;
+  items.sort((a, b) => a.postAt - b.postAt);
+  await save();
+}
+
 async function postDue(client: Client<true>) {
   const now = Date.now();
   for (const item of items.filter((i) => i.postAt <= now)) {
@@ -68,12 +79,14 @@ async function postDue(client: Client<true>) {
       const { message } = await buildAnnouncement(guild, item.data);
       await (channel as GuildTextBasedChannel).send(message);
       console.log(`Posted scheduled announcement ${item.id} ("${item.data.title}")`);
-      await removeScheduled(item.id);
+      if (item.repeat) await reschedule(item);
+      else await removeScheduled(item.id);
     } catch (error) {
       item.attempts = (item.attempts ?? 0) + 1;
       console.error(`Scheduled announcement ${item.id} failed (attempt ${item.attempts}):`, error);
-      if (item.attempts >= MAX_ATTEMPTS) await removeScheduled(item.id);
-      else await save();
+      if (item.attempts < MAX_ATTEMPTS) await save();
+      else if (item.repeat) await reschedule(item); // skip this one, try again next time
+      else await removeScheduled(item.id);
     }
   }
 }

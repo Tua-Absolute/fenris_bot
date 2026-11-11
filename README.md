@@ -39,16 +39,35 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | Command | Who can use it | What it does |
 |---|---|---|
 | `/ping` | Everyone | Checks the bot is online. |
-| `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, `when` (schedule it for later), color, `title_font`, emoji `divider`, banner image or generated banner, @here/@everyone, a role ping, and a link button. Type `:emoji_name:` in the message to use your server's custom emoji. |
-| `/schedule list` / `/schedule cancel` | Manage Messages | See or cancel announcements waiting to be posted. |
+| `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, `when` (schedule it for later), `repeat` (daily, weekly, every 2 weeks, or monthly at the same local time), color, `title_font`, emoji `divider`, banner image or generated banner, @here/@everyone, a role ping, and a link button. Type `:emoji_name:` in the message to use your server's custom emoji. |
+| `/schedule list` / `/schedule cancel` | Manage Messages | See or cancel announcements waiting to be posted, including recurring ones (🔁). |
 | `/event create` | Manage Events | Adds an event to the server calendar. `start` understands things like `fri 8pm`, `tomorrow 7:30pm`, `11/14 8pm`, or `2026-11-14 20:00`. Can use a voice channel or a place/link, a cover image, and post an announcement with the event link. |
 | `/event list` | Manage Events | Shows upcoming events with times in each viewer's own time zone. |
 | `/event cancel` | Manage Events | Cancels an event (pick it from the suggestions). |
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
 | `/fancy` | Everyone | Turns text into fancy Unicode fonts (bold, script, gothic, double-struck, small caps, bubble, wide, upside down, and more) with optional emoji dividers. Shows all styles to copy, or posts one. |
 | `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
-| `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. Other subcommands (mod log, tickets, levels, reminders, recap) switch on features as they arrive. |
+| `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. `modlog`, `tickets`, `levels`, `level_role`, `reminders`, and `recap` switch on the features below. |
 | `/roles` | Manage Roles | Posts a self-serve role panel: up to 15 roles as buttons. Members click to add a role and click again to remove it. Roles with admin or moderator permissions, and roles above Fenris's own role, are refused. |
+| `/warn add` / `list` / `clear` | Timeout Members | Warns a member (they get a DM), keeps a history with IDs, and clears one or all warnings. |
+| `/timeout set` / `remove` | Timeout Members | Mutes a member for `10m`, `2h`, `1d`, `1h30m` (up to 28 days), or lifts it early. |
+| `/purge` | Manage Messages | Deletes up to 100 recent messages, optionally only from one person or only bots. Skips pinned messages and anything older than 14 days. |
+| `/automod setup` / `status` / `off` | Manage Server | Turns on Discord's own AutoMod: profanity and slur filter, invite-link blocking, spam detection, a mention limit, and your own blocked words. Discord enforces these even if Fenris is offline. |
+| `/catchup` | Everyone | Claude privately sums up what you missed in a channel: since your last message, or the past N hours. |
+| `/recap` | Manage Server | Claude posts a recap of the past 7 days across the server, with a banner, right now. |
+| `/ticket panel` / `open` / `close` / `add` | Everyone (panel: Manage Server) | Support tickets. The panel's **Open a ticket** button asks what's wrong, then opens a private channel for that member and your staff role. Closing saves a transcript to the mod log and DMs a copy to the member. |
+| `/rank` | Everyone | Your level, XP, rank, and next role reward (when levels are on). |
+| `/leaderboard show` / `set` | Everyone (set: Manage Server) | Top 10 members by XP; admins can set someone's level. |
+| `/giveaway start` / `end` / `reroll` | Manage Server | Posts a giveaway with an **Enter** button, a timer, a winner count, and an optional required role. Draws winners automatically when time is up. |
+| `/stats show` / `counter` | Everyone (counter: Manage Server) | Members, new joins this week, message activity, busiest channels, boosts. `counter` adds a live "👥 Members: N" channel at the top of the server. |
+
+**XP and levels:** turn on with `/settings levels`. Members earn 15 to 25 XP per message (once a minute, so spam doesn't pay), get a level-up message, and receive any reward roles you set with `/settings level_role`.
+
+**Mod log:** pick a channel with `/settings modlog` and Fenris posts deleted and edited messages, joins (flagging brand-new accounts), leaves, bans, unbans, and every `/warn`, `/timeout`, `/purge`, and AutoMod block there.
+
+**Weekly recap:** set a channel with `/settings recap` and every Sunday at 6 PM Claude posts highlights from the week and upcoming events. **Server FAQ:** `/settings faq` opens a form for rules, links, schedules, and anything else Claude should know when members ask. You can also mention Fenris and say "catch me up" in any channel. `/catchup` and chat count toward `CHAT_DAILY_LIMIT`, and each recap counts as 5.
+
+**Event reminders:** set a channel with `/settings reminders` and Fenris posts a reminder 1 day before each calendar event and again 1 hour before, pinging everyone who clicked **Interested**.
 
 **Welcome cards:** with `/settings welcome` set, every new member gets a red and black card with their avatar, name, and member number, and the auto-role if you picked one. Fenris's role must sit above any role it hands out (Server Settings > Roles, drag Fenris up).
 

@@ -18,13 +18,14 @@ import { colorChoices, colorFor, discordTime } from "../lib/brand.js";
 import { download, isImage, UserError } from "../lib/files.js";
 import { dividerChoices, fontChoices } from "../lib/fonts.js";
 import { addScheduled, saveImage } from "../lib/schedule.js";
-import { DATE_HELP, parseDateTime } from "../lib/time.js";
+import { DATE_HELP, parseDateTime, repeatChoices, repeatLabel, type Repeat } from "../lib/time.js";
 import type { Command } from "./types.js";
 
 interface Pending {
   data: Omit<AnnouncementData, "title" | "body" | "footer">;
   image: Attachment | null;
   postAt: Date | null;
+  repeat?: Repeat;
   expires: number;
 }
 
@@ -44,6 +45,7 @@ export const announce: Command = {
       o.setName("channel").setDescription("Where to post it (default: this channel)")
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
     .addStringOption((o) => o.setName("when").setDescription('Schedule it, e.g. "fri 6pm" or "11/20 9am" (default: post now)'))
+    .addStringOption((o) => o.setName("repeat").setDescription("Post it again on a cycle (needs `when` for the first post)").addChoices(...repeatChoices))
     .addStringOption((o) => o.setName("color").setDescription("Accent color").addChoices(...colorChoices))
     .addStringOption((o) => o.setName("title_font").setDescription("Fancy font for the title").addChoices(...fontOptions))
     .addStringOption((o) => o.setName("divider").setDescription("Emoji divider above and below the message").addChoices(...dividerChoices))
@@ -72,6 +74,8 @@ export const announce: Command = {
     if (!!buttonLabel !== !!buttonUrl) throw new UserError("A button needs both button_label and button_url.");
 
     let postAt: Date | null = null;
+    const repeat = (interaction.options.getString("repeat") ?? undefined) as Repeat | undefined;
+    if (repeat && !whenText) throw new UserError("To repeat an announcement, also set `when` for its first post.");
     if (whenText) {
       postAt = parseDateTime(whenText, config.timezone());
       if (!postAt) throw new UserError(`I couldn't read "${whenText}" as a date and time. ${DATE_HELP}`);
@@ -94,6 +98,7 @@ export const announce: Command = {
       },
       image,
       postAt,
+      repeat,
       expires: now + FIFTEEN_MINUTES,
     });
 
@@ -137,10 +142,10 @@ export const announce: Command = {
     }
 
     if (p.postAt) {
-      const item = await addScheduled(guild.id, interaction.user.id, p.postAt, data);
+      const item = await addScheduled(guild.id, interaction.user.id, p.postAt, data, p.repeat);
       const { embed } = await buildAnnouncement(guild, { ...data, bannerStyle: undefined, imageFile: undefined });
       await interaction.editReply({
-        content: `Scheduled for ${discordTime(p.postAt)} (${discordTime(p.postAt, "R")}) in <#${data.channelId}>. ` +
+        content: `Scheduled for ${discordTime(p.postAt)} (${discordTime(p.postAt, "R")})${p.repeat ? `, then ${repeatLabel(p.repeat)}` : ""} in <#${data.channelId}>. ` +
           `ID \`${item.id}\`. See or cancel it with \`/schedule\`. Preview:`,
         embeds: [embed],
       });

@@ -2,6 +2,12 @@ import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteract
 import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands } from "./commands/index.js";
 import { config } from "./config.js";
+import { startEventReminders } from "./features/eventReminders.js";
+import { registerModLog } from "./features/modlogEvents.js";
+import { registerLevels } from "./features/levels.js";
+import { startWeeklyRecap } from "./features/weeklyRecap.js";
+import { startGiveaways } from "./commands/giveaway.js";
+import { registerMemberCounter } from "./commands/stats.js";
 import { registerWelcome } from "./features/welcome.js";
 import { UserError } from "./lib/files.js";
 import { registerCommands } from "./lib/registerCommands.js";
@@ -10,17 +16,23 @@ import { startScheduler } from "./lib/schedule.js";
 const chat = config.chatEnabled();
 
 const client = new Client({
-  // GuildMembers (welcome cards, auto-role) needs "Server Members Intent" in the Developer Portal.
-  // Reading messages (for chat) needs "Message Content Intent", so we only ask for it when chat is on.
+  // GuildMembers (welcome cards, joins) needs "Server Members Intent" and MessageContent (chat, mod log)
+  // needs "Message Content Intent", both switched on in the Developer Portal.
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
-    ...(chat ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] : []),
+    GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildScheduledEvents,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
   ],
 });
 
 if (chat) registerChat(client);
 registerWelcome(client);
+registerModLog(client);
+registerLevels(client);
+registerMemberCounter(client);
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`Logged in as ${c.user.tag} in ${c.guilds.cache.size} server(s).`);
@@ -32,6 +44,9 @@ client.once(Events.ClientReady, async (c) => {
     console.error("Couldn't register slash commands. Is the bot in the server set by DISCORD_GUILD_ID?", error);
   }
   startScheduler(c);
+  startEventReminders(c);
+  startWeeklyRecap(c);
+  startGiveaways(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
@@ -105,8 +120,7 @@ try {
   await client.login(config.token());
 } catch (error) {
   if (String(error).includes("disallowed intents")) {
-    console.error('Discord refused to log in: in the Developer Portal (your app > Bot), turn on "Server Members Intent"' +
-      (chat ? ' and "Message Content Intent"' : "") + ", save, then start me again.");
+    console.error('Discord refused to log in: in the Developer Portal (your app > Bot), turn on "Server Members Intent" and "Message Content Intent", save, then start me again.');
     process.exit(1);
   }
   throw error;

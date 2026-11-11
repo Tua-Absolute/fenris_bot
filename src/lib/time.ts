@@ -5,7 +5,7 @@ const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 interface Parts { year: number; month: number; day: number; hour: number; minute: number; weekday: number }
 
-function partsInZone(date: Date, timeZone: string): Parts {
+export function partsInZone(date: Date, timeZone: string): Parts {
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
     hour: "numeric", minute: "numeric", weekday: "short",
@@ -118,3 +118,35 @@ export function formatShort(date: Date, timeZone: string): string {
   const time = new Intl.DateTimeFormat("en-US", { timeZone, hour: "numeric", minute: "2-digit" }).format(date);
   return `${day.replace(",", "")} · ${time}`;
 }
+
+export type Repeat = "daily" | "weekly" | "biweekly" | "monthly";
+
+export const repeatChoices = [
+  { name: "Every day", value: "daily" },
+  { name: "Every week", value: "weekly" },
+  { name: "Every 2 weeks", value: "biweekly" },
+  { name: "Every month", value: "monthly" },
+] as const;
+
+/** The next time after `from` that repeats `at` at the same local wall-clock time (keeps 6 PM across DST). */
+export function nextRepeat(at: Date, repeat: Repeat, timeZone: string, from: Date = new Date()): Date {
+  const p = partsInZone(at, timeZone);
+  let { year, month, day } = p;
+  const wantDay = p.day;
+  let next = at;
+  for (let i = 0; i < 1000 && next.getTime() <= from.getTime(); i++) {
+    if (repeat === "monthly") {
+      month += 1;
+      if (month > 12) { month = 1; year += 1; }
+      const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      day = Math.min(wantDay, last); // the 31st becomes the last day of short months
+    } else {
+      const d = new Date(Date.UTC(year, month - 1, day + (repeat === "daily" ? 1 : repeat === "weekly" ? 7 : 14)));
+      year = d.getUTCFullYear(); month = d.getUTCMonth() + 1; day = d.getUTCDate();
+    }
+    next = zonedToUtc(year, month, day, p.hour, p.minute, timeZone);
+  }
+  return next;
+}
+
+export const repeatLabel = (r?: Repeat) => (r ? repeatChoices.find((c) => c.value === r)!.name.toLowerCase() : "");

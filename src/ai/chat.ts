@@ -13,22 +13,18 @@ import { config } from "../config.js";
 import { UserError } from "../lib/files.js";
 import { execute, preview, requiredPermission, type Action } from "./actions.js";
 import { askClaude } from "./claude.js";
+import { takeQuota } from "./quota.js";
+import { getSettings } from "../lib/settings.js";
 
 const COOLDOWN_MS = 8_000;
 const HISTORY = 20;
+const CATCHUP_HISTORY = 100;
+const CATCHUP = /\b(catch (me )?up|what did i miss|what'?s been happening|summar(y|ize|ise)|tl;?dr|recap)\b/i;
 const PENDING_TTL_MS = 15 * 60_000;
 
 const lastAsked = new Map<string, number>();
-let day = "";
-let usedToday = 0;
 
 const pending = new Map<string, { action: Action; userId: string; expires: number }>();
-
-function underDailyLimit(): boolean {
-  const today = new Date().toISOString().slice(0, 10);
-  if (today !== day) { day = today; usedToday = 0; }
-  return usedToday < config.chatDailyLimit();
-}
 
 function localNow(): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -38,11 +34,12 @@ function localNow(): string {
 
 async function buildContext(message: Message<true>, botId: string): Promise<string> {
   const guild = message.guild;
-  const earlier = await message.channel.messages.fetch({ limit: HISTORY, before: message.id });
+  const catchup = CATCHUP.test(message.cleanContent);
+  const earlier = await message.channel.messages.fetch({ limit: catchup ? CATCHUP_HISTORY : HISTORY, before: message.id });
   const transcript = [...earlier.values()].reverse().map((m) => {
     const who = m.author.id === botId ? "Fenris (you)" : (m.member?.displayName ?? m.author.username);
     const embedText = m.embeds.map((e) => `[embed: ${e.title ?? ""}]`).join(" ");
-    return `${who}: ${(m.cleanContent || embedText || "[attachment]").slice(0, 600)}`;
+    return `${who}: ${(m.cleanContent || embedText || "[attachment]").slice(0, catchup ? 300 : 600)}`;
   }).join("\n");
 
   const text = guild.channels.cache
@@ -53,12 +50,14 @@ async function buildContext(message: Message<true>, botId: string): Promise<stri
     .map((c) => `${c.name} (id ${c.id})`).join(", ");
 
   const asker = message.member?.displayName ?? message.author.username;
+  const faq = getSettings(guild.id).faq;
   return [
     `Server: ${guild.name}`,
     `Current channel: #${"name" in message.channel ? message.channel.name : "?"} (id ${message.channel.id})`,
     `Server local time: ${localNow()} (${config.timezone()})`,
     `Text channels: ${text}`,
     `Voice channels: ${voice || "none"}`,
+    ...(faq ? ["", "Server FAQ and facts from the admins (trust these and use them to answer questions about the server):", faq] : []),
     "",
     "Recent messages in this channel (oldest first):",
     transcript || "(none)",
@@ -85,12 +84,11 @@ async function onMessage(message: Message, client: Client<true>) {
     await message.react("⏳").catch(() => {});
     return;
   }
-  if (!underDailyLimit()) {
+  if (!takeQuota()) {
     await message.reply("I've hit today's chat limit for this server. I'll be back tomorrow!");
     return;
   }
   lastAsked.set(message.author.id, now);
-  usedToday++;
 
   await message.channel.sendTyping().catch(() => {});
   try {
