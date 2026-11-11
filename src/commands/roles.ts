@@ -38,6 +38,8 @@ for (let i = 1; i <= MAX_ROLES; i++) {
   builder.addRoleOption((o) => o.setName(`role${i}`).setDescription(`Role ${i}`).setRequired(i === 1));
 }
 builder.addStringOption((o) => o.setName("description").setDescription("Text above the buttons").setMaxLength(1000));
+builder.addStringOption((o) => o.setName("role_descriptions")
+  .setDescription("A note for each role, in order, split with |  e.g. Pinged for game nights | Art drops").setMaxLength(1500));
 builder.addBooleanOption((o) => o.setName("pick_one").setDescription("Members can hold only one role from this panel (picking one swaps out the other)"));
 const MAX_EXCLUDE = 3;
 for (let i = 1; i <= MAX_EXCLUDE; i++) {
@@ -81,6 +83,10 @@ export const roles: Command = {
       if (r && !excluded.includes(r.id)) excluded.push(r.id);
     }
     if (excluded.some((id) => picked.some((p) => p.id === id))) throw new UserError("A role can't be both on the panel and excluded.");
+    const notes = (interaction.options.getString("role_descriptions") ?? "").split("|").map((t) => t.trim());
+    if (notes.filter(Boolean).length > picked.length) {
+      throw new UserError(`You gave ${notes.filter(Boolean).length} descriptions for ${picked.length} roles. Split them with | in the same order as the roles.`);
+    }
     const suffix = `:${pickOne ? "1" : ""}:${excluded.join(",")}`;
 
     const rows: ActionRowBuilder<ButtonBuilder>[] = [];
@@ -92,11 +98,11 @@ export const roles: Command = {
 
     const embed = brandEmbed(colors.red)
       .setTitle(interaction.options.getString("title", true))
-      .setDescription(`${interaction.options.getString("description") ?? (pickOne
+      .setDescription((`${interaction.options.getString("description") ?? (pickOne
         ? "Click a button to pick your role. Picking another swaps it."
         : "Click a button to get a role. Click again to remove it.")}\n\n` +
-        picked.map((r) => `• <@&${r.id}>`).join("\n") +
-        (excluded.length ? `\n\n*Not available to ${excluded.map((id) => `<@&${id}>`).join(", ")}.*` : ""));
+        picked.map((r, i) => `• <@&${r.id}>${notes[i] ? ` — ${notes[i].slice(0, 200)}` : ""}`).join("\n") +
+        (excluded.length ? `\n\n*Not available to ${excluded.map((id) => `<@&${id}>`).join(", ")}.*` : "")).slice(0, 4096));
     await interaction.reply({ content: "Posting the role panel…", flags: MessageFlags.Ephemeral });
     await (interaction.channel as GuildTextBasedChannel).send({ embeds: [embed], components: rows });
   },
