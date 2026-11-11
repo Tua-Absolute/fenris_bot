@@ -1,5 +1,6 @@
 import type {
   AutocompleteInteraction,
+  ButtonInteraction,
   ChatInputCommandInteraction,
   ModalSubmitInteraction,
   SlashCommandBuilder,
@@ -14,4 +15,6 @@ export interface Command {
   autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
   /** Handles modals whose customId starts with "<command name>:". */
   handleModal?: (interaction: ModalSubmitInteraction) => Promise<void>;
+  /** Handles buttons whose customId starts with "<command name>:". */
+  handleButton?: (interaction: ButtonInteraction) => Promise<void>;
 }

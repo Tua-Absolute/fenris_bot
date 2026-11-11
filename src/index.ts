@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteract
 import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands } from "./commands/index.js";
 import { config } from "./config.js";
+import { registerWelcome } from "./features/welcome.js";
 import { UserError } from "./lib/files.js";
 import { registerCommands } from "./lib/registerCommands.js";
 import { startScheduler } from "./lib/schedule.js";
@@ -9,14 +10,17 @@ import { startScheduler } from "./lib/schedule.js";
 const chat = config.chatEnabled();
 
 const client = new Client({
-  // Reading messages (for chat) needs "Message Content Intent" switched on in the Developer Portal,
-  // so we only ask for it when chat is turned on.
-  intents: chat
-    ? [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
-    : [GatewayIntentBits.Guilds],
+  // GuildMembers (welcome cards, auto-role) needs "Server Members Intent" in the Developer Portal.
+  // Reading messages (for chat) needs "Message Content Intent", so we only ask for it when chat is on.
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    ...(chat ? [GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] : []),
+  ],
 });
 
 if (chat) registerChat(client);
+registerWelcome(client);
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`Logged in as ${c.user.tag} in ${c.guilds.cache.size} server(s).`);
@@ -64,11 +68,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
-  if (interaction.isButton() && interaction.customId.startsWith("chat:")) {
+  if (interaction.isButton()) {
+    const prefix = interaction.customId.split(":")[0];
+    const handler = prefix === "chat" ? handleChatButton : commands.get(prefix)?.handleButton;
+    if (!handler) return;
     try {
-      await handleChatButton(interaction);
+      await handler(interaction);
     } catch (error) {
-      await fail(interaction, "chat button", error);
+      await fail(interaction, `button ${interaction.customId}`, error);
     }
     return;
   }
@@ -97,8 +104,9 @@ for (const signal of ["SIGTERM", "SIGINT"] as const) {
 try {
   await client.login(config.token());
 } catch (error) {
-  if (chat && String(error).includes("disallowed intents")) {
-    console.error('Discord refused to log in: turn on "Message Content Intent" in the Developer Portal (your app > Bot), then start me again.');
+  if (String(error).includes("disallowed intents")) {
+    console.error('Discord refused to log in: in the Developer Portal (your app > Bot), turn on "Server Members Intent"' +
+      (chat ? ' and "Message Content Intent"' : "") + ", save, then start me again.");
     process.exit(1);
   }
   throw error;
