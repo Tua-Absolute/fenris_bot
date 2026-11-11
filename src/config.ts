@@ -12,4 +12,6 @@ export const config = {
   token: () => required("DISCORD_TOKEN"),
   clientId: () => required("DISCORD_CLIENT_ID"),
   guildId: () => required("DISCORD_GUILD_ID"),
+  /** Time zone used to read times typed into commands like /event. */
+  timezone: () => process.env.TIMEZONE?.trim() || "America/Chicago",
 };
