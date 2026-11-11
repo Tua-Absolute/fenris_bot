@@ -52,7 +52,7 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 
 Times typed into commands are read in the `TIMEZONE` from `.env` (default `America/Chicago`). You can change who sees each command in Server Settings > Integrations > Fenris.
 
-**After pulling new commands, run `npm run deploy-commands` again** so Discord knows about them.
+The bot registers its slash commands every time it starts, so new commands appear after a restart. (`npm run deploy-commands` still works if you want to update them without restarting.)
 
 ## Claude chat (optional)
 
@@ -65,9 +65,21 @@ To turn it on:
 
 Costs stay predictable: chat is off without a key, each person has a short cooldown, and `CHAT_DAILY_LIMIT` caps replies per day (default 200). `CLAUDE_MODEL` picks the model: `claude-opus-5-5` (default) is the smartest, `claude-haiku-5-5` costs a small fraction as much.
 
-## Running it 24/7
+## Running it 24/7 on Railway
 
-While this is a concept, running it on your own computer with `npm run build && npm start` is free. When you want it always on, a free-tier VM (for example Oracle Cloud Always Free) or a paid host like Railway both work, since it is a normal long-running Node process.
+Fenris is set up to run on [Railway](https://railway.com/) (about $5/month on the Hobby plan, after a free trial). Railway builds it from the `Dockerfile` and restarts it if it ever crashes.
+
+1. Go to [railway.com](https://railway.com/), sign in with GitHub, and pick the Hobby plan when asked.
+2. Click **New Project** > **Deploy from GitHub repo** and choose `fenris_bot`. If it isn't listed, click **Configure GitHub App** and give Railway access to that repo.
+3. Open the new service, go to the **Variables** tab, click **Raw Editor**, paste in everything from your `.env` file, and save. Railway redeploys with your settings.
+4. Open **Deployments** > the latest one > **Deploy Logs**. You should see "Logged in as Fenris Bot..." and "Slash commands up to date".
+5. **Stop the copy on your computer** (Ctrl+C in its terminal). If both run at once, Fenris answers everything twice.
+
+No domain or port is needed, since the bot connects out to Discord.
+
+**Updating:** every time a pull request is merged into `main`, Railway rebuilds and restarts Fenris on its own, and the bot re-registers its slash commands at startup. To change a setting (like `CLAUDE_MODEL`), edit it in the Variables tab.
+
+**Running locally instead:** `npm run dev` still works for testing; just stop the Railway service first (or use a second test bot) so two copies don't run at once.
 
 ## Adding a command
 

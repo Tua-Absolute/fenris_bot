@@ -3,6 +3,7 @@ import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands } from "./commands/index.js";
 import { config } from "./config.js";
 import { UserError } from "./lib/files.js";
+import { registerCommands } from "./lib/registerCommands.js";
 
 const chat = config.chatEnabled();
 
@@ -16,8 +17,15 @@ const client = new Client({
 
 if (chat) registerChat(client);
 
-client.once(Events.ClientReady, (c) => {
+client.once(Events.ClientReady, async (c) => {
   console.log(`Logged in as ${c.user.tag} in ${c.guilds.cache.size} server(s).`);
+  // Keep the server's slash commands in sync with this code, so updates never need a manual step.
+  try {
+    const names = await registerCommands();
+    console.log(`Slash commands up to date (${names.length}).`);
+  } catch (error) {
+    console.error("Couldn't register slash commands. Is the bot in the server set by DISCORD_GUILD_ID?", error);
+  }
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
@@ -75,6 +83,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 process.on("unhandledRejection", (err) => console.error("Unhandled rejection:", err));
+
+// Hosts stop the bot with SIGTERM when deploying an update; disconnect cleanly so it goes offline at once.
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.once(signal, () => {
+    console.log(`${signal} received, shutting down.`);
+    void client.destroy().finally(() => process.exit(0));
+  });
+}
 
 try {
   await client.login(config.token());
