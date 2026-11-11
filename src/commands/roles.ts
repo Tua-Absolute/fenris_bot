@@ -5,6 +5,7 @@ import {
   MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  type Guild,
   type GuildMember,
   type GuildTextBasedChannel,
   type Role,
@@ -40,6 +41,11 @@ for (let i = 1; i <= MAX_ROLES; i++) {
 builder.addStringOption((o) => o.setName("description").setDescription("Text above the buttons").setMaxLength(1000));
 builder.addStringOption((o) => o.setName("role_descriptions")
   .setDescription("A note for each role, in order, split with |  e.g. Pinged for game nights | Art drops").setMaxLength(1500));
+builder.addStringOption((o) => o.setName("button_color").setDescription("Button color (default grey)").addChoices(
+  { name: "Red", value: "red" }, { name: "Blurple", value: "blurple" }, { name: "Green", value: "green" }, { name: "Grey", value: "grey" },
+  { name: "Rainbow (cycle through all)", value: "mix" }));
+builder.addStringOption((o) => o.setName("emojis")
+  .setDescription("An emoji for each role, in order, split with |  e.g. 🏐 | 🐤 | :my_emoji:").setMaxLength(1000));
 builder.addBooleanOption((o) => o.setName("pick_one").setDescription("Members can hold only one role from this panel (picking one swaps out the other)"));
 const MAX_EXCLUDE = 3;
 for (let i = 1; i <= MAX_EXCLUDE; i++) {
@@ -51,6 +57,23 @@ function parseId(customId: string) {
   const [, roleId, one = "", ex = ""] = customId.split(":");
   return { roleId, pickOne: one === "1", excluded: ex ? ex.split(",") : [] };
 }
+
+type Emoji = string | { id: string; name: string; animated: boolean };
+
+/** Unicode emoji as-is, or a custom emoji from <:name:id> or :name: (this server's). */
+function resolveEmoji(guild: Guild, text?: string): Emoji | null {
+  if (!text) return null;
+  const custom = text.match(/^<(a?):(\w+):(\d+)>$/);
+  if (custom) return { id: custom[3], name: custom[2], animated: !!custom[1] };
+  const named = text.match(/^:(\w+):$/);
+  if (named) {
+    const e = guild.emojis.cache.find((x) => x.name === named[1]);
+    return e ? { id: e.id, name: e.name!, animated: !!e.animated } : null;
+  }
+  return /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(text) && text.length <= 16 ? text : null;
+}
+
+const emojiMarkup = (e: Emoji) => (typeof e === "string" ? e : `<${e.animated ? "a" : ""}:${e.name}:${e.id}>`);
 
 function checkRole(role: Role, me: GuildMember): string | null {
   if (role.managed || role.id === role.guild.id) return `${role.name} is managed by Discord or an integration.`;
@@ -89,11 +112,22 @@ export const roles: Command = {
     }
     const suffix = `:${pickOne ? "1" : ""}:${excluded.join(",")}`;
 
+    const colorChoice = interaction.options.getString("button_color") ?? "grey";
+    const styles = { red: ButtonStyle.Danger, blurple: ButtonStyle.Primary, green: ButtonStyle.Success, grey: ButtonStyle.Secondary };
+    const cycle = [ButtonStyle.Danger, ButtonStyle.Primary, ButtonStyle.Success, ButtonStyle.Secondary];
+    const emojiText = (interaction.options.getString("emojis") ?? "").split("|").map((t) => t.trim());
+    // Typed emoji, or the role's own icon emoji if it has one.
+    const emojis = picked.map((role, i) => resolveEmoji(guild, emojiText[i]) ?? (role.unicodeEmoji || null));
+    const bad = emojiText.map((t, i) => (t && !emojis[i] ? t : null)).filter(Boolean);
+    if (bad.length) throw new UserError(`I couldn't use ${bad.join(", ")} as emoji. Use normal emoji or this server's custom emoji like :name:.`);
+
     const rows: ActionRowBuilder<ButtonBuilder>[] = [];
     picked.forEach((role, i) => {
       if (i % 5 === 0) rows.push(new ActionRowBuilder<ButtonBuilder>());
-      rows[rows.length - 1].addComponents(
-        new ButtonBuilder().setCustomId(`roles:${role.id}${suffix}`).setLabel(role.name.slice(0, 80)).setStyle(ButtonStyle.Secondary));
+      const button = new ButtonBuilder().setCustomId(`roles:${role.id}${suffix}`).setLabel(role.name.slice(0, 80))
+        .setStyle(colorChoice === "mix" ? cycle[i % cycle.length] : styles[colorChoice as keyof typeof styles]);
+      if (emojis[i]) button.setEmoji(emojis[i]!);
+      rows[rows.length - 1].addComponents(button);
     });
 
     const embed = brandEmbed(colors.red)
@@ -101,7 +135,7 @@ export const roles: Command = {
       .setDescription((`${interaction.options.getString("description") ?? (pickOne
         ? "Click a button to pick your role. Picking another swaps it."
         : "Click a button to get a role. Click again to remove it.")}\n\n` +
-        picked.map((r, i) => `• <@&${r.id}>${notes[i] ? ` — ${notes[i].slice(0, 200)}` : ""}`).join("\n") +
+        picked.map((r, i) => `${emojis[i] ? emojiMarkup(emojis[i]!) : "•"} <@&${r.id}>${notes[i] ? ` — ${notes[i].slice(0, 200)}` : ""}`).join("\n") +
         (excluded.length ? `\n\n*Not available to ${excluded.map((id) => `<@&${id}>`).join(", ")}.*` : "")).slice(0, 4096));
     await interaction.reply({ content: "Posting the role panel…", flags: MessageFlags.Ephemeral });
     await (interaction.channel as GuildTextBasedChannel).send({ embeds: [embed], components: rows });
