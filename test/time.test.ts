@@ -36,3 +36,34 @@ test("rejects nonsense", () => {
     assert.equal(iso(bad), null, bad);
   }
 });
+
+test("nextRepeat keeps the local time across daylight saving", async () => {
+  const { nextRepeat, zonedToUtc } = await import("../src/lib/time.js");
+  const tz = "America/Chicago";
+  const at = zonedToUtc(2026, 10, 30, 18, 0, tz); // Fri Oct 30 6 PM CDT
+  const next = nextRepeat(at, "weekly", tz, at);
+  assert.equal(next.getTime(), zonedToUtc(2026, 11, 6, 18, 0, tz).getTime()); // 6 PM CST
+  assert.equal(next.getTime() - at.getTime(), 7 * 86_400_000 + 3_600_000);
+});
+
+test("nextRepeat monthly clamps to short months and skips missed runs", async () => {
+  const { nextRepeat, zonedToUtc } = await import("../src/lib/time.js");
+  const tz = "America/Chicago";
+  const jan31 = zonedToUtc(2027, 1, 31, 9, 0, tz);
+  assert.equal(nextRepeat(jan31, "monthly", tz, jan31).getTime(), zonedToUtc(2027, 2, 28, 9, 0, tz).getTime());
+  const daily = zonedToUtc(2026, 11, 1, 8, 0, tz);
+  const later = zonedToUtc(2026, 11, 5, 12, 0, tz);
+  assert.equal(nextRepeat(daily, "daily", tz, later).getTime(), zonedToUtc(2026, 11, 6, 8, 0, tz).getTime());
+});
+
+test("dueReminder picks the day and hour reminders", async () => {
+  process.env.DATA_DIR ??= (await import("node:fs")).mkdtempSync((await import("node:path")).join((await import("node:os")).tmpdir(), "fenris-"));
+  const { dueReminder } = await import("../src/features/eventReminders.js");
+  const H = 3_600_000;
+  assert.equal(dueReminder(23 * H, []), "day");
+  assert.equal(dueReminder(23 * H, ["day"]), null);
+  assert.equal(dueReminder(10 * H, []), null);
+  assert.equal(dueReminder(30 * 60_000, ["day"]), "hour");
+  assert.equal(dueReminder(30 * 60_000, ["day", "hour"]), null);
+  assert.equal(dueReminder(-60_000, []), null);
+});

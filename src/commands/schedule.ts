@@ -2,12 +2,13 @@ import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.
 import { brandEmbed, colors, discordTime } from "../lib/brand.js";
 import { UserError } from "../lib/files.js";
 import { listScheduled, removeScheduled } from "../lib/schedule.js";
+import { repeatLabel } from "../lib/time.js";
 import type { Command } from "./types.js";
 
 export const schedule: Command = {
   data: new SlashCommandBuilder()
     .setName("schedule")
-    .setDescription("See or cancel scheduled announcements.")
+    .setDescription("See or cancel scheduled and recurring announcements.")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
     .addSubcommand((s) => s.setName("list").setDescription("Show announcements waiting to be posted."))
     .addSubcommand((s) => s.setName("cancel").setDescription("Cancel a scheduled announcement.")
@@ -22,8 +23,8 @@ export const schedule: Command = {
       const embed = brandEmbed(colors.red).setTitle("Scheduled announcements").setDescription(
         items.length
           ? items.slice(0, 20).map((i) =>
-            `\`${i.id}\` **${i.data.title}**\n${discordTime(new Date(i.postAt), "f")} (${discordTime(new Date(i.postAt), "R")}) in <#${i.data.channelId}>`).join("\n\n")
-          : "Nothing scheduled. Use the `when` option on `/announce` to schedule one.");
+            `\`${i.id}\` **${i.data.title}**\n${discordTime(new Date(i.postAt), "f")} (${discordTime(new Date(i.postAt), "R")}) in <#${i.data.channelId}>${i.repeat ? ` · 🔁 ${repeatLabel(i.repeat)}` : ""}`).join("\n\n")
+          : "Nothing scheduled. Use the `when` option on `/announce` to schedule one, and `repeat` to make it recurring.");
       await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
       return;
     }

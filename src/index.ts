@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteract
 import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands } from "./commands/index.js";
 import { config } from "./config.js";
+import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
 import { registerWelcome } from "./features/welcome.js";
 import { UserError } from "./lib/files.js";
@@ -17,6 +18,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildModeration,
+    GatewayIntentBits.GuildScheduledEvents,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
   ],
@@ -36,6 +38,7 @@ client.once(Events.ClientReady, async (c) => {
     console.error("Couldn't register slash commands. Is the bot in the server set by DISCORD_GUILD_ID?", error);
   }
   startScheduler(c);
+  startEventReminders(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
