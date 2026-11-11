@@ -11,16 +11,19 @@ import { ping } from "./ping.js";
 import { poll } from "./poll.js";
 import { purge } from "./purge.js";
 import { recap } from "./recap.js";
-import { roles } from "./roles.js";
+import { editRolePanel, roles } from "./roles.js";
 import { schedule } from "./schedule.js";
 import { settings } from "./settings.js";
 import { stats } from "./stats.js";
 import { ticket } from "./ticket.js";
 import { timeout } from "./timeout.js";
-import type { Command } from "./types.js";
+import type { Command, MessageMenu } from "./types.js";
 import { warn } from "./warn.js";
 
 // Add each new command here; they register automatically when the bot starts.
 const all: Command[] = [ping, announce, schedule, event, poll, banner, fancyCommand, settings, roles, warn, timeout, purge, automod, catchup, recap, ticket, rank, leaderboard, giveaway, stats];
 
 export const commands = new Collection<string, Command>(all.map((c) => [c.data.name, c]));
+
+// Right-click > Apps commands on messages.
+export const menus = new Collection<string, MessageMenu>([editRolePanel].map((m) => [m.data.name, m]));

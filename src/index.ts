@@ -1,6 +1,6 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteraction } from "discord.js";
 import { handleChatButton, registerChat } from "./ai/chat.js";
-import { commands } from "./commands/index.js";
+import { commands, menus } from "./commands/index.js";
 import { config } from "./config.js";
 import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
@@ -69,6 +69,17 @@ client.on(Events.InteractionCreate, async (interaction) => {
   if (interaction.isAutocomplete()) {
     const command = commands.get(interaction.commandName);
     await command?.autocomplete?.(interaction).catch((e) => console.error("autocomplete failed:", e));
+    return;
+  }
+
+  if (interaction.isMessageContextMenuCommand()) {
+    const menu = menus.get(interaction.commandName);
+    if (!menu) return;
+    try {
+      await menu.execute(interaction);
+    } catch (error) {
+      await fail(interaction, interaction.commandName, error);
+    }
     return;
   }
 
