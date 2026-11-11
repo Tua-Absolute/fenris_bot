@@ -50,6 +50,13 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. Other subcommands (mod log, tickets, levels, reminders, recap) switch on features as they arrive. |
 | `/roles` | Manage Roles | Posts a self-serve role panel: up to 15 roles as buttons. Members click to add a role and click again to remove it. Roles with admin or moderator permissions, and roles above Fenris's own role, are refused. |
 
+| `/warn add` / `list` / `clear` | Timeout Members | Warns a member (they get a DM), keeps a history with IDs, and clears one or all warnings. |
+| `/timeout set` / `remove` | Timeout Members | Mutes a member for `10m`, `2h`, `1d`, `1h30m` (up to 28 days), or lifts it early. |
+| `/purge` | Manage Messages | Deletes up to 100 recent messages, optionally only from one person or only bots. Skips pinned messages and anything older than 14 days. |
+| `/automod setup` / `status` / `off` | Manage Server | Turns on Discord's own AutoMod: profanity and slur filter, invite-link blocking, spam detection, a mention limit, and your own blocked words. Discord enforces these even if Fenris is offline. |
+
+**Mod log:** pick a channel with `/settings modlog` and Fenris posts deleted and edited messages, joins (flagging brand-new accounts), leaves, bans, unbans, and every `/warn`, `/timeout`, `/purge`, and AutoMod block there.
+
 **Welcome cards:** with `/settings welcome` set, every new member gets a red and black card with their avatar, name, and member number, and the auto-role if you picked one. Fenris's role must sit above any role it hands out (Server Settings > Roles, drag Fenris up).
 
 **Generated art:** `/announce` has a `banner` option and `/event create` has a `cover_style` option that make a matching image automatically (title, server name or event date, and your server's icon, or the Fenris wolf if the server has no icon). Claude chat adds them to its drafts too. Images are drawn on your own computer, so they cost nothing.
