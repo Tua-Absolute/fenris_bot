@@ -15,6 +15,7 @@ import {
   type MessageCreateOptions,
 } from "discord.js";
 import { brandEmbed, colorChoices, colorFor } from "../lib/brand.js";
+import { bannerStyleChoices, renderBanner } from "../lib/banner.js";
 import { download, isImage, UserError } from "../lib/files.js";
 import type { Command } from "./types.js";
 
@@ -24,6 +25,7 @@ interface Pending {
   ping: string;
   roleId: string | null;
   image: Attachment | null;
+  bannerStyle: string | null;
   buttonLabel: string | null;
   buttonUrl: string | null;
   expires: number;
@@ -43,7 +45,8 @@ export const announce: Command = {
         .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement))
     .addStringOption((o) =>
       o.setName("color").setDescription("Accent color").addChoices(...colorChoices))
-    .addAttachmentOption((o) => o.setName("image").setDescription("Banner image shown under the message"))
+    .addAttachmentOption((o) => o.setName("image").setDescription("Your own banner image shown under the message"))
+    .addStringOption((o) => o.setName("banner").setDescription("Or generate a banner from the title in this style").addChoices(...bannerStyleChoices))
     .addStringOption((o) =>
       o.setName("ping").setDescription("Who to notify").addChoices(
         { name: "Nobody", value: "none" },
@@ -73,6 +76,7 @@ export const announce: Command = {
       ping: interaction.options.getString("ping") ?? "none",
       roleId: interaction.options.getRole("role")?.id ?? null,
       image,
+      bannerStyle: interaction.options.getString("banner"),
       buttonLabel,
       buttonUrl,
       expires: now + FIFTEEN_MINUTES,
@@ -107,10 +111,10 @@ export const announce: Command = {
     const channel = await interaction.guild?.channels.fetch(p.channelId);
     if (!channel?.isTextBased()) throw new UserError("I can't post in that channel.");
 
+    const guild = interaction.guild!;
     const embed = brandEmbed(p.color)
       .setTitle(interaction.fields.getTextInputValue("title"))
       .setDescription(interaction.fields.getTextInputValue("body"));
-    const guild = interaction.guild!;
     embed.setAuthor({ name: guild.name, iconURL: guild.iconURL() ?? undefined });
     const footer = interaction.fields.getTextInputValue("footer");
     if (footer) embed.setFooter({ text: footer });
@@ -121,6 +125,10 @@ export const announce: Command = {
       const name = `banner.${p.image.name.split(".").pop() || "png"}`;
       message.files = [new AttachmentBuilder(await download(p.image), { name })];
       embed.setImage(`attachment://${name}`);
+    } else if (p.bannerStyle) {
+      const png = renderBanner({ title: interaction.fields.getTextInputValue("title"), subtitle: guild.name, style: p.bannerStyle });
+      message.files = [new AttachmentBuilder(png, { name: "banner.png" })];
+      embed.setImage("attachment://banner.png");
     }
     if (p.buttonLabel && p.buttonUrl) {
       message.components = [new ActionRowBuilder<ButtonBuilder>().addComponents(

@@ -1,6 +1,7 @@
 // Things Claude can propose doing in the server. Nothing runs until a person with the
 // right permission clicks Confirm.
 import {
+  AttachmentBuilder,
   ChannelType,
   GuildScheduledEventEntityType,
   GuildScheduledEventPrivacyLevel,
@@ -11,12 +12,16 @@ import {
 } from "discord.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
+import { bannerStyles, renderBanner } from "../lib/banner.js";
 import { brandEmbed, colorFor, colors, discordTime } from "../lib/brand.js";
 import { UserError } from "../lib/files.js";
-import { DATE_HELP, parseDateTime } from "../lib/time.js";
+import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
 
-export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone" }
-export interface EventInput { name: string; start: string; hours?: number; location?: string; voice_channel_id?: string; description?: string }
+export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string }
+export interface EventInput { name: string; start: string; hours?: number; location?: string; voice_channel_id?: string; description?: string; cover_style?: string }
+
+const styleEnum = ["none", ...Object.keys(bannerStyles)];
+const wantsArt = (style?: string) => !!style && style !== "none" && style in bannerStyles;
 export interface PollInput { channel_id: string; question: string; answers: string[]; hours?: number; multiple?: boolean }
 
 export type Action =
@@ -38,8 +43,9 @@ export const tools: Anthropic.Beta.BetaTool[] = [
         body: { type: "string", description: "Announcement text, Discord markdown allowed, under 1500 characters" },
         color: { type: "string", enum: ["red", "ember", "gold", "blue", "green", "purple", "white"] },
         ping: { type: "string", enum: ["none", "here", "everyone"], description: "Only ping if the user asked for it" },
+        banner_style: { type: "string", enum: styleEnum, description: "Generate a banner image from the title in this style. Use fenris (red and black) by default for anything event-like or exciting; none for routine notices or if the user doesn't want an image." },
       },
-      required: ["channel_id", "title", "body", "color", "ping"],
+      required: ["channel_id", "title", "body", "color", "ping", "banner_style"],
     },
   },
   {
@@ -56,8 +62,9 @@ export const tools: Anthropic.Beta.BetaTool[] = [
         location: { type: "string", description: "A place or link, if not in a voice channel. Empty string if a voice channel is used." },
         voice_channel_id: { type: "string", description: "ID of a voice channel from the list to hold it in, or empty string" },
         description: { type: "string", description: "Short event description, under 500 characters" },
+        cover_style: { type: "string", enum: styleEnum, description: "Generate a cover image showing the name and date in this style. Default to fenris unless the user asks otherwise." },
       },
-      required: ["name", "start", "hours", "location", "voice_channel_id", "description"],
+      required: ["name", "start", "hours", "location", "voice_channel_id", "description", "cover_style"],
     },
   },
   {
@@ -105,14 +112,28 @@ function announcementEmbed(guild: Guild, a: AnnouncementInput): EmbedBuilder {
     .setDescription(a.body.slice(0, 4000));
 }
 
+function announcementArt(guild: Guild, a: AnnouncementInput): Buffer | null {
+  return wantsArt(a.banner_style) ? renderBanner({ title: a.title, subtitle: guild.name, style: a.banner_style }) : null;
+}
+
+function eventArt(e: EventInput, start: Date): Buffer | null {
+  return wantsArt(e.cover_style) ? renderBanner({ title: e.name, subtitle: formatShort(start, config.timezone()), style: e.cover_style }) : null;
+}
+
+function withArt(embed: EmbedBuilder, art: Buffer | null): { embed: EmbedBuilder; files: AttachmentBuilder[] } {
+  if (!art) return { embed, files: [] };
+  embed.setImage("attachment://banner.png");
+  return { embed, files: [new AttachmentBuilder(art, { name: "banner.png" })] };
+}
+
 /** Checks the proposal and builds the preview shown above the Confirm button. */
-export function preview(guild: Guild, action: Action): { summary: string; embed: EmbedBuilder } {
+export function preview(guild: Guild, action: Action): { summary: string; embed: EmbedBuilder; files: AttachmentBuilder[] } {
   switch (action.kind) {
     case "announcement": {
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
       const ping = a.ping && a.ping !== "none" ? ` and ping @${a.ping}` : "";
-      return { summary: `Post this announcement in <#${ch.id}>${ping}?`, embed: announcementEmbed(guild, a) };
+      return { summary: `Post this announcement in <#${ch.id}>${ping}?`, ...withArt(announcementEmbed(guild, a), announcementArt(guild, a)) };
     }
     case "event": {
       const e = action.input;
@@ -122,12 +143,12 @@ export function preview(guild: Guild, action: Action): { summary: string; embed:
       const where = e.voice_channel_id ? `<#${e.voice_channel_id}>` : e.location || "See event details";
       return {
         summary: "Create this event on the server calendar?",
-        embed: brandEmbed(colors.red).setTitle(`📅 ${e.name}`).setDescription([
+        ...withArt(brandEmbed(colors.red).setTitle(`📅 ${e.name}`).setDescription([
           e.description,
           "",
           `**When:** ${discordTime(start)} (${e.hours || 2} h)`,
           `**Where:** ${where}`,
-        ].join("\n")),
+        ].join("\n")), eventArt(e, start)),
       };
     }
     case "poll": {
@@ -136,6 +157,7 @@ export function preview(guild: Guild, action: Action): { summary: string; embed:
       if (p.answers.length < 2 || p.answers.length > 10) throw new UserError("A poll needs between 2 and 10 answers.");
       return {
         summary: `Start this poll in <#${ch.id}>?`,
+        files: [],
         embed: brandEmbed(colors.red).setTitle(`📊 ${p.question}`).setDescription(
           p.answers.map((a, i) => `${i + 1}. ${a}`).join("\n") +
           `\n\nOpen for ${p.hours || 24} h${p.multiple ? " · multiple choice" : ""}`),
@@ -151,9 +173,11 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
       const ping = a.ping === "here" || a.ping === "everyone";
+      const { embed, files } = withArt(announcementEmbed(guild, a), announcementArt(guild, a));
       const msg = await ch.send({
         content: ping ? `@${a.ping}` : undefined,
-        embeds: [announcementEmbed(guild, a)],
+        embeds: [embed],
+        files,
         allowedMentions: { parse: ping ? ["everyone"] : [] },
       });
       return msg.url;
@@ -170,6 +194,7 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
         scheduledStartTime: start,
         scheduledEndTime: end,
         privacyLevel: GuildScheduledEventPrivacyLevel.GuildOnly,
+        image: eventArt(e, start) ?? undefined,
         ...(isVoice
           ? {
             entityType: voice!.type === ChannelType.GuildStageVoice
