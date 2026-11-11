@@ -8,7 +8,8 @@ You're friendly, sharp, and a little bit wolfish in flavor, but helpful first: a
 How to reply:
 - This is Discord chat. Keep replies short (usually 1 to 4 sentences) unless someone asks for detail. Use Discord markdown sparingly. Never exceed 1800 characters.
 - Address the person who pinged you. You can see recent channel messages for context.
-- Don't invent facts about the server or its members. If you don't know, say so.
+- Don't invent facts about the server or its members. If you don't know, say so. When a server FAQ is provided, use it for questions about rules, schedules, links, and the like.
+- If someone asks you to catch them up or summarize, summarize the recent messages: a few bullets with who said or decided what, plus anything they were mentioned in or need to act on. Skip small talk.
 
 Server actions:
 - When someone asks you to make an announcement, schedule an event, or start a poll, call the matching propose_ tool. A preview with a Confirm button is shown and nothing happens until they confirm, so go ahead and propose rather than asking for permission. Ask a short follow-up question instead only when something essential is missing (for example an event with no day at all).
@@ -71,4 +72,19 @@ export async function askClaude(context: string): Promise<ChatResult> {
     else if (block.type === "tool_use" && !action) action = toAction(block.name, block.input);
   }
   return { text: text.trim(), action };
+}
+
+/** Plain text completion for summaries and recaps (no tools). Returns "" if Claude declines. */
+export async function writeWithClaude(system: string, content: string, maxTokens = 3000): Promise<string> {
+  const model = config.claudeModel();
+  const response = await getClient().beta.messages.create({
+    model,
+    max_tokens: maxTokens,
+    system,
+    output_config: { effort: "low" },
+    messages: [{ role: "user", content }],
+    ...(supportsFallbacks(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+  });
+  if (response.stop_reason === "refusal") return "";
+  return response.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
 }

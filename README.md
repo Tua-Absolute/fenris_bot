@@ -57,6 +57,11 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 
 **Mod log:** pick a channel with `/settings modlog` and Fenris posts deleted and edited messages, joins (flagging brand-new accounts), leaves, bans, unbans, and every `/warn`, `/timeout`, `/purge`, and AutoMod block there.
 
+| `/catchup` | Everyone | Claude privately sums up what you missed in a channel: since your last message, or the past N hours. |
+| `/recap` | Manage Server | Claude posts a recap of the past 7 days across the server, with a banner, right now. |
+
+**Weekly recap:** set a channel with `/settings recap` and every Sunday at 6 PM Claude posts highlights from the week and upcoming events. **Server FAQ:** `/settings faq` opens a form for rules, links, schedules, and anything else Claude should know when members ask. You can also mention Fenris and say "catch me up" in any channel. `/catchup` and chat count toward `CHAT_DAILY_LIMIT`, and each recap counts as 5.
+
 **Event reminders:** set a channel with `/settings reminders` and Fenris posts a reminder 1 day before each calendar event and again 1 hour before, pinging everyone who clicked **Interested**.
 
 **Welcome cards:** with `/settings welcome` set, every new member gets a red and black card with their avatar, name, and member number, and the auto-role if you picked one. Fenris's role must sit above any role it hands out (Server Settings > Roles, drag Fenris up).

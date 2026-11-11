@@ -4,6 +4,7 @@ import { commands } from "./commands/index.js";
 import { config } from "./config.js";
 import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
+import { startWeeklyRecap } from "./features/weeklyRecap.js";
 import { registerWelcome } from "./features/welcome.js";
 import { UserError } from "./lib/files.js";
 import { registerCommands } from "./lib/registerCommands.js";
@@ -39,6 +40,7 @@ client.once(Events.ClientReady, async (c) => {
   }
   startScheduler(c);
   startEventReminders(c);
+  startWeeklyRecap(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
