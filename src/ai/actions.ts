@@ -12,13 +12,16 @@ import {
 } from "discord.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
+import { buildAnnouncement, type AnnouncementData } from "../lib/announcement.js";
 import { bannerStyles, renderBanner } from "../lib/banner.js";
+import { dividers, fonts } from "../lib/fonts.js";
+import { addScheduled } from "../lib/schedule.js";
 import { brandEmbed, colorFor, colors, discordTime } from "../lib/brand.js";
 import { UserError } from "../lib/files.js";
 import { serverIcon } from "../lib/serverIcon.js";
 import { DATE_HELP, formatShort, parseDateTime } from "../lib/time.js";
 
-export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string }
+export interface AnnouncementInput { channel_id: string; title: string; body: string; color?: string; ping?: "none" | "here" | "everyone"; banner_style?: string; title_font?: string; divider?: string; post_at?: string }
 export interface EventInput { name: string; start: string; hours?: number; location?: string; voice_channel_id?: string; description?: string; cover_style?: string }
 
 const styleEnum = ["none", ...Object.keys(bannerStyles)];
@@ -45,8 +48,11 @@ export const tools: Anthropic.Beta.BetaTool[] = [
         color: { type: "string", enum: ["red", "ember", "gold", "blue", "green", "purple", "white"] },
         ping: { type: "string", enum: ["none", "here", "everyone"], description: "Only ping if the user asked for it" },
         banner_style: { type: "string", enum: styleEnum, description: "Generate a banner image from the title in this style. Use fenris (red and black) by default for anything event-like or exciting; none for routine notices or if the user doesn't want an image." },
+        title_font: { type: "string", enum: ["none", ...Object.keys(fonts)], description: "Fancy Unicode font for the title. Use none unless the user asks for a fancy font or a very hype announcement; never upside_down unless asked." },
+        divider: { type: "string", enum: Object.keys(dividers), description: "Emoji divider above and below the body. none unless it suits a big announcement or the user asks." },
+        post_at: { type: "string", description: "Empty string to post right away. To schedule, the server-local time formatted exactly YYYY-MM-DD HH:MM (24-hour)." },
       },
-      required: ["channel_id", "title", "body", "color", "ping", "banner_style"],
+      required: ["channel_id", "title", "body", "color", "ping", "banner_style", "title_font", "divider", "post_at"],
     },
   },
   {
@@ -106,16 +112,26 @@ function textChannel(guild: Guild, id: string): GuildTextBasedChannel {
   return ch as GuildTextBasedChannel;
 }
 
-function announcementEmbed(guild: Guild, a: AnnouncementInput): EmbedBuilder {
-  return brandEmbed(colorFor(a.color))
-    .setAuthor({ name: guild.name, iconURL: guild.iconURL() ?? undefined })
-    .setTitle(a.title.slice(0, 256))
-    .setDescription(a.body.slice(0, 4000));
+function announcementData(a: AnnouncementInput): AnnouncementData {
+  return {
+    channelId: a.channel_id,
+    title: a.title.slice(0, 200),
+    body: a.body.slice(0, 3800),
+    color: colorFor(a.color),
+    ping: a.ping,
+    bannerStyle: wantsArt(a.banner_style) ? a.banner_style : undefined,
+    titleFont: a.title_font && a.title_font !== "none" ? a.title_font : undefined,
+    divider: a.divider && a.divider !== "none" ? a.divider : undefined,
+  };
 }
 
-async function announcementArt(guild: Guild, a: AnnouncementInput): Promise<Buffer | null> {
-  if (!wantsArt(a.banner_style)) return null;
-  return renderBanner({ title: a.title, subtitle: guild.name, style: a.banner_style, emblemImage: await serverIcon(guild) });
+/** When the announcement should go out, or null for right away. Throws if the time is unusable. */
+function postTime(a: AnnouncementInput): Date | null {
+  if (!a.post_at?.trim()) return null;
+  const at = parseDateTime(a.post_at, config.timezone());
+  if (!at) throw new UserError(`I couldn't work out when to post it. ${DATE_HELP}`);
+  if (at.getTime() < Date.now()) throw new UserError("That posting time is in the past.");
+  return at;
 }
 
 async function eventArt(guild: Guild, e: EventInput, start: Date): Promise<Buffer | null> {
@@ -138,7 +154,11 @@ export async function preview(guild: Guild, action: Action): Promise<{ summary: 
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
       const ping = a.ping && a.ping !== "none" ? ` and ping @${a.ping}` : "";
-      return { summary: `Post this announcement in <#${ch.id}>${ping}?`, ...withArt(announcementEmbed(guild, a), await announcementArt(guild, a)) };
+      const at = postTime(a);
+      const { message, embed } = await buildAnnouncement(guild, announcementData(a));
+      const files = (message.files ?? []) as AttachmentBuilder[];
+      const when = at ? `Schedule this announcement for ${discordTime(at)} in <#${ch.id}>${ping}?` : `Post this announcement in <#${ch.id}>${ping}?`;
+      return { summary: when, embed, files };
     }
     case "event": {
       const e = action.input;
@@ -171,21 +191,20 @@ export async function preview(guild: Guild, action: Action): Promise<{ summary: 
   }
 }
 
-/** Carries out a confirmed proposal. Returns a link to the result. */
-export async function execute(guild: Guild, action: Action): Promise<string> {
+/** Carries out a confirmed proposal. Returns a short result message for the person. */
+export async function execute(guild: Guild, action: Action, userId: string): Promise<string> {
   switch (action.kind) {
     case "announcement": {
       const a = action.input;
       const ch = textChannel(guild, a.channel_id);
-      const ping = a.ping === "here" || a.ping === "everyone";
-      const { embed, files } = withArt(announcementEmbed(guild, a), await announcementArt(guild, a));
-      const msg = await ch.send({
-        content: ping ? `@${a.ping}` : undefined,
-        embeds: [embed],
-        files,
-        allowedMentions: { parse: ping ? ["everyone"] : [] },
-      });
-      return msg.url;
+      const at = postTime(a);
+      if (at) {
+        const item = await addScheduled(guild.id, userId, at, announcementData(a));
+        return `Scheduled for ${discordTime(at)} (${discordTime(at, "R")}). ID \`${item.id}\`, manage it with \`/schedule\`.`;
+      }
+      const { message } = await buildAnnouncement(guild, announcementData(a));
+      const msg = await ch.send(message);
+      return `Done! ${msg.url}`;
     }
     case "event": {
       const e = action.input;
@@ -212,7 +231,7 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
             entityMetadata: { location: e.location || "See event details" },
           }),
       });
-      return created.url;
+      return `Done! ${created.url}`;
     }
     case "poll": {
       const p = action.input;
@@ -225,7 +244,7 @@ export async function execute(guild: Guild, action: Action): Promise<string> {
           allowMultiselect: !!p.multiple,
         },
       });
-      return msg.url;
+      return `Done! ${msg.url}`;
     }
   }
 }

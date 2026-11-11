@@ -4,6 +4,7 @@ import { commands } from "./commands/index.js";
 import { config } from "./config.js";
 import { UserError } from "./lib/files.js";
 import { registerCommands } from "./lib/registerCommands.js";
+import { startScheduler } from "./lib/schedule.js";
 
 const chat = config.chatEnabled();
 
@@ -26,6 +27,7 @@ client.once(Events.ClientReady, async (c) => {
   } catch (error) {
     console.error("Couldn't register slash commands. Is the bot in the server set by DISCORD_GUILD_ID?", error);
   }
+  startScheduler(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
