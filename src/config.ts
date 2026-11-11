@@ -14,4 +14,8 @@ export const config = {
   guildId: () => required("DISCORD_GUILD_ID"),
   /** Time zone used to read times typed into commands like /event. */
   timezone: () => process.env.TIMEZONE?.trim() || "America/Chicago",
+  /** Claude chat is on only when an API key is set. */
+  chatEnabled: () => !!process.env.ANTHROPIC_API_KEY?.trim(),
+  claudeModel: () => process.env.CLAUDE_MODEL?.trim() || "claude-opus-5-5",
+  chatDailyLimit: () => Number(process.env.CHAT_DAILY_LIMIT) || 200,
 };

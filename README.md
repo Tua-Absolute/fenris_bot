@@ -6,7 +6,7 @@ An all-in-one bot for running a Discord server: eye-catching announcements, Disc
 
 1. **Foundation** (done): project setup, slash command framework, `/ping`, invite link.
 2. **Management commands** (done): `/announce`, `/event`, `/poll`. Scheduled posting comes later, once the bot has storage.
-3. **Claude in chat**: mention the bot to talk to it; plain-English requests turn into actions after a confirm button.
+3. **Claude in chat** (done): mention the bot to talk to it; plain-English requests turn into announcements, events, and polls after a Confirm button.
 4. **Asset generation**: banner and cover images built from templates. Paid image models (Gemini, ChatGPT) are deliberately left out for now.
 
 ## Setup (about 10 minutes)
@@ -48,6 +48,17 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 Times typed into commands are read in the `TIMEZONE` from `.env` (default `America/Chicago`). You can change who sees each command in Server Settings > Integrations > Fenris.
 
 **After pulling new commands, run `npm run deploy-commands` again** so Discord knows about them.
+
+## Claude chat (optional)
+
+Mention Fenris (or reply to one of its messages) and it answers using Claude, with the last 20 messages of the channel as context. Ask it things like *"@Fenris announce game night Friday at 8 in #general and make an event for it"* and it drafts the post, shows a preview, and waits for you to press **Confirm**. Only the person who asked can confirm, and they need the same permission the slash command would need.
+
+To turn it on:
+1. At [console.anthropic.com](https://console.anthropic.com/), add some prepaid credit, then create a key under **API Keys**.
+2. In the [Developer Portal](https://discord.com/developers/applications), open your app > **Bot** and switch on **Message Content Intent**.
+3. Put the key after `ANTHROPIC_API_KEY=` in `.env` and restart the bot. The terminal says "Claude chat is ON".
+
+Costs stay predictable: chat is off without a key, each person has a short cooldown, and `CHAT_DAILY_LIMIT` caps replies per day (default 200). `CLAUDE_MODEL` picks the model: `claude-opus-5-5` (default) is the smartest, `claude-haiku-5-5` costs a small fraction as much.
 
 ## Running it 24/7
 

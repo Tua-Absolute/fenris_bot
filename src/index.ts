@@ -1,15 +1,26 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteraction } from "discord.js";
+import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands } from "./commands/index.js";
 import { config } from "./config.js";
 import { UserError } from "./lib/files.js";
 
+const chat = config.chatEnabled();
+
 const client = new Client({
-  // More intents (reading messages for chat replies) get added as features need them.
-  intents: [GatewayIntentBits.Guilds],
+  // Reading messages (for chat) needs "Message Content Intent" switched on in the Developer Portal,
+  // so we only ask for it when chat is turned on.
+  intents: chat
+    ? [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+    : [GatewayIntentBits.Guilds],
 });
+
+if (chat) registerChat(client);
 
 client.once(Events.ClientReady, (c) => {
   console.log(`Logged in as ${c.user.tag} in ${c.guilds.cache.size} server(s).`);
+  console.log(chat
+    ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
+    : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
 });
 
 async function fail(interaction: RepliableInteraction, label: string, error: unknown) {
@@ -43,6 +54,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  if (interaction.isButton() && interaction.customId.startsWith("chat:")) {
+    try {
+      await handleChatButton(interaction);
+    } catch (error) {
+      await fail(interaction, "chat button", error);
+    }
+    return;
+  }
+
   if (interaction.isModalSubmit()) {
     const command = commands.get(interaction.customId.split(":")[0]);
     if (!command?.handleModal) return;
@@ -56,4 +76,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 process.on("unhandledRejection", (err) => console.error("Unhandled rejection:", err));
 
-await client.login(config.token());
+try {
+  await client.login(config.token());
+} catch (error) {
+  if (chat && String(error).includes("disallowed intents")) {
+    console.error('Discord refused to log in: turn on "Message Content Intent" in the Developer Portal (your app > Bot), then start me again.');
+    process.exit(1);
+  }
+  throw error;
+}
