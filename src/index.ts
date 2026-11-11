@@ -4,7 +4,10 @@ import { commands } from "./commands/index.js";
 import { config } from "./config.js";
 import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
+import { registerLevels } from "./features/levels.js";
 import { startWeeklyRecap } from "./features/weeklyRecap.js";
+import { startGiveaways } from "./commands/giveaway.js";
+import { registerMemberCounter } from "./commands/stats.js";
 import { registerWelcome } from "./features/welcome.js";
 import { UserError } from "./lib/files.js";
 import { registerCommands } from "./lib/registerCommands.js";
@@ -28,6 +31,8 @@ const client = new Client({
 if (chat) registerChat(client);
 registerWelcome(client);
 registerModLog(client);
+registerLevels(client);
+registerMemberCounter(client);
 
 client.once(Events.ClientReady, async (c) => {
   console.log(`Logged in as ${c.user.tag} in ${c.guilds.cache.size} server(s).`);
@@ -41,6 +46,7 @@ client.once(Events.ClientReady, async (c) => {
   startScheduler(c);
   startEventReminders(c);
   startWeeklyRecap(c);
+  startGiveaways(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");

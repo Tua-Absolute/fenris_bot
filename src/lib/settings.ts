@@ -14,6 +14,7 @@ export interface GuildSettings {
   faq?: string;
   recapChannelId?: string;
   eventRemindersChannelId?: string;
+  memberCountChannelId?: string;
 }
 
 const store = new JsonStore<Record<string, GuildSettings>>("settings", {});

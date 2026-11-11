@@ -47,7 +47,7 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/poll` | Everyone | Starts a native Discord poll with 2 to 10 answers, a duration, and optional multiple choice. |
 | `/fancy` | Everyone | Turns text into fancy Unicode fonts (bold, script, gothic, double-struck, small caps, bubble, wide, upside down, and more) with optional emoji dividers. Shows all styles to copy, or posts one. |
 | `/banner` | Everyone | Generates a banner image from a title and optional subtitle, in a choice of styles, with the server icon, the Fenris wolf, or no emblem. |
-| `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. Other subcommands (mod log, tickets, levels, reminders, recap) switch on features as they arrive. |
+| `/settings` | Manage Server | One place to set Fenris up for your server. `view` shows everything; `welcome` sets the welcome channel, message (`{user}`, `{name}`, `{server}`, `{count}`), card style, and auto-role; `faq` opens a form for facts Claude should know. `modlog`, `tickets`, `levels`, `level_role`, `reminders`, and `recap` switch on the features below. |
 | `/roles` | Manage Roles | Posts a self-serve role panel: up to 15 roles as buttons. Members click to add a role and click again to remove it. Roles with admin or moderator permissions, and roles above Fenris's own role, are refused. |
 | `/warn add` / `list` / `clear` | Timeout Members | Warns a member (they get a DM), keeps a history with IDs, and clears one or all warnings. |
 | `/timeout set` / `remove` | Timeout Members | Mutes a member for `10m`, `2h`, `1d`, `1h30m` (up to 28 days), or lifts it early. |
@@ -56,6 +56,12 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | `/catchup` | Everyone | Claude privately sums up what you missed in a channel: since your last message, or the past N hours. |
 | `/recap` | Manage Server | Claude posts a recap of the past 7 days across the server, with a banner, right now. |
 | `/ticket panel` / `open` / `close` / `add` | Everyone (panel: Manage Server) | Support tickets. The panel's **Open a ticket** button asks what's wrong, then opens a private channel for that member and your staff role. Closing saves a transcript to the mod log and DMs a copy to the member. |
+| `/rank` | Everyone | Your level, XP, rank, and next role reward (when levels are on). |
+| `/leaderboard show` / `set` | Everyone (set: Manage Server) | Top 10 members by XP; admins can set someone's level. |
+| `/giveaway start` / `end` / `reroll` | Manage Server | Posts a giveaway with an **Enter** button, a timer, a winner count, and an optional required role. Draws winners automatically when time is up. |
+| `/stats show` / `counter` | Everyone (counter: Manage Server) | Members, new joins this week, message activity, busiest channels, boosts. `counter` adds a live "👥 Members: N" channel at the top of the server. |
+
+**XP and levels:** turn on with `/settings levels`. Members earn 15 to 25 XP per message (once a minute, so spam doesn't pay), get a level-up message, and receive any reward roles you set with `/settings level_role`.
 
 **Mod log:** pick a channel with `/settings modlog` and Fenris posts deleted and edited messages, joins (flagging brand-new accounts), leaves, bans, unbans, and every `/warn`, `/timeout`, `/purge`, and AutoMod block there.
 
