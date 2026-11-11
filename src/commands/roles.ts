@@ -16,12 +16,18 @@ import type { Command } from "./types.js";
 const MAX_ROLES = 15;
 
 // Roles with these permissions are never handed out by a button.
-const DANGEROUS = [
-  PermissionFlagsBits.Administrator, PermissionFlagsBits.ManageGuild, PermissionFlagsBits.ManageRoles,
-  PermissionFlagsBits.ManageChannels, PermissionFlagsBits.BanMembers, PermissionFlagsBits.KickMembers,
-  PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ModerateMembers, PermissionFlagsBits.ManageWebhooks,
-  PermissionFlagsBits.MentionEveryone,
-];
+// (Mention @everyone is left out on purpose: Discord turns it on for every new role by default.)
+const DANGEROUS = {
+  Administrator: PermissionFlagsBits.Administrator,
+  "Manage Server": PermissionFlagsBits.ManageGuild,
+  "Manage Roles": PermissionFlagsBits.ManageRoles,
+  "Manage Channels": PermissionFlagsBits.ManageChannels,
+  "Ban Members": PermissionFlagsBits.BanMembers,
+  "Kick Members": PermissionFlagsBits.KickMembers,
+  "Manage Messages": PermissionFlagsBits.ManageMessages,
+  "Timeout Members": PermissionFlagsBits.ModerateMembers,
+  "Manage Webhooks": PermissionFlagsBits.ManageWebhooks,
+};
 
 const builder = new SlashCommandBuilder()
   .setName("roles")
@@ -35,7 +41,8 @@ builder.addStringOption((o) => o.setName("description").setDescription("Text abo
 
 function checkRole(role: Role, me: GuildMember): string | null {
   if (role.managed || role.id === role.guild.id) return `${role.name} is managed by Discord or an integration.`;
-  if (DANGEROUS.some((p) => role.permissions.has(p))) return `${role.name} has moderator-level permissions, so I won't hand it out.`;
+  const risky = Object.entries(DANGEROUS).filter(([, p]) => role.permissions.has(p, false)).map(([name]) => name);
+  if (risky.length) return `${role.name} has ${risky.join(", ")}, so I won't hand it out. Turn that off in Server Settings > Roles > ${role.name} if members shouldn't have it.`;
   if (role.position >= me.roles.highest.position) return `${role.name} is above my highest role. Drag my role above it in Server Settings > Roles.`;
   return null;
 }
