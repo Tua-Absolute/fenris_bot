@@ -20,6 +20,15 @@ export interface GuildSettings {
   birthdayMessage?: string;
   botTrap?: { channelId: string; messageId: string; action: "ban" | "kick" | "timeout" };
   rules?: { channelId: string; messageId?: string; text: string; title: string; memberRoleId: string; introRoleId?: string };
+  quotes?: {
+    channelId: string;
+    frequency: "daily" | "weekly" | "biweekly" | "monthly";
+    hour: number;          // 0-23, server time zone
+    weekday: number;       // 0 = Sunday (weekly / biweekly)
+    monthDay: number;      // 1-31, moved to the last day in shorter months (monthly)
+    customOnly?: boolean;  // only use the server's own quotes
+    lastPosted?: string;   // YYYY-MM-DD
+  };
 }
 
 const store = new JsonStore<Record<string, GuildSettings>>("settings", {});

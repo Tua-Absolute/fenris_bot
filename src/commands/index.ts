@@ -12,6 +12,7 @@ import { leaderboard, rank } from "./levels.js";
 import { ping } from "./ping.js";
 import { poll } from "./poll.js";
 import { purge } from "./purge.js";
+import { quotes } from "./quotes.js";
 import { recap } from "./recap.js";
 import { editRolePanel, roles } from "./roles.js";
 import { rules } from "./rules.js";
@@ -24,7 +25,7 @@ import type { Command, MessageMenu } from "./types.js";
 import { warn } from "./warn.js";
 
 // Add each new command here; they register automatically when the bot starts.
-const all: Command[] = [ping, announce, schedule, event, poll, banner, fancyCommand, settings, roles, warn, timeout, purge, automod, catchup, recap, ticket, rank, leaderboard, giveaway, stats, birthday, bottrap, rules];
+const all: Command[] = [ping, announce, schedule, event, poll, banner, fancyCommand, settings, roles, warn, timeout, purge, automod, catchup, recap, ticket, rank, leaderboard, giveaway, stats, birthday, bottrap, rules, quotes];
 
 export const commands = new Collection<string, Command>(all.map((c) => [c.data.name, c]));
 
