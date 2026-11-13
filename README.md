@@ -39,6 +39,7 @@ Type `/ping` in your server. A "Pong!" embed means everything works.
 | Command | Who can use it | What it does |
 |---|---|---|
 | `/ping` | Everyone | Checks the bot is online. |
+| `/guide` | Everyone (posting publicly: Manage Server) | A styled, red Fenris guide with a banner. `for` picks members, admins, or everything. Leave `post_in` empty to read it privately, or pick a channel to post it for the server. The Claude sections only show in servers where Claude is on. |
 | `/announce` | Manage Messages | Opens a form for a title, message, and footer, then posts a styled embed. Options: channel, `when` (schedule it for later), `repeat` (daily, weekly, every 2 weeks, or monthly at the same local time), color, `title_font`, emoji `divider`, banner image or generated banner, @here/@everyone, a role ping, and a link button. Type `:emoji_name:` in the message to use your server's custom emoji. |
 | `/schedule list` / `/schedule cancel` | Manage Messages | See or cancel announcements waiting to be posted, including recurring ones (🔁). |
 | `/event create` | Manage Events | Adds an event to the server calendar. `start` understands things like `fri 8pm`, `tomorrow 7:30pm`, `11/14 8pm`, or `2026-11-14 20:00`. Can use a voice channel or a place/link, a cover image, and post an announcement with the event link. |
