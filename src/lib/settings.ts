@@ -15,6 +15,11 @@ export interface GuildSettings {
   recapChannelId?: string;
   eventRemindersChannelId?: string;
   memberCountChannelId?: string;
+  birthdayChannelId?: string;
+  birthdayRoleId?: string;
+  birthdayMessage?: string;
+  botTrap?: { channelId: string; messageId: string; action: "ban" | "kick" | "timeout" };
+  rules?: { channelId: string; messageId?: string; text: string; title: string; memberRoleId: string; introRoleId?: string };
 }
 
 const store = new JsonStore<Record<string, GuildSettings>>("settings", {});

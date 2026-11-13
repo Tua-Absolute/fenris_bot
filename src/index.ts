@@ -1,9 +1,11 @@
-import { Client, Events, GatewayIntentBits, MessageFlags, type RepliableInteraction } from "discord.js";
+import { Client, Events, GatewayIntentBits, Partials, MessageFlags, type RepliableInteraction } from "discord.js";
 import { handleChatButton, registerChat } from "./ai/chat.js";
 import { commands, menus } from "./commands/index.js";
 import { config } from "./config.js";
 import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
+import { startBirthdays } from "./features/birthdays.js";
+import { registerBotTrap } from "./features/botTrap.js";
 import { registerLevels } from "./features/levels.js";
 import { startWeeklyRecap } from "./features/weeklyRecap.js";
 import { startGiveaways } from "./commands/giveaway.js";
@@ -25,13 +27,17 @@ const client = new Client({
     GatewayIntentBits.GuildScheduledEvents,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMessageReactions,
   ],
+  // Lets the bot catcher see reactions on its post even after a restart.
+  partials: [Partials.Message, Partials.Reaction, Partials.User],
 });
 
 if (chat) registerChat(client);
 registerWelcome(client);
 registerModLog(client);
 registerLevels(client);
+registerBotTrap(client);
 registerMemberCounter(client);
 
 client.once(Events.ClientReady, async (c) => {
@@ -47,6 +53,7 @@ client.once(Events.ClientReady, async (c) => {
   startEventReminders(c);
   startWeeklyRecap(c);
   startGiveaways(c);
+  startBirthdays(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");

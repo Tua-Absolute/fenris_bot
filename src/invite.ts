@@ -21,6 +21,8 @@ const permissions = [
   p.ManageGuild, // AutoMod rules
   p.ManageChannels, // support tickets
   p.ViewAuditLog, // mod log
+  p.BanMembers, // bot catcher
+  p.KickMembers, // bot catcher
 ].reduce((a, b) => a | b, 0n);
 
 const url = new URL("https://discord.com/oauth2/authorize");
