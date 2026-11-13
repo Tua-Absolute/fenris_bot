@@ -1,5 +1,5 @@
 import { ChannelType, MessageFlags, SlashCommandBuilder, type GuildTextBasedChannel } from "discord.js";
-import { config } from "../config.js";
+import { claudeAllowedIn, config } from "../config.js";
 import { writeWithClaude } from "../ai/claude.js";
 import { takeQuota } from "../ai/quota.js";
 import { messagesSince, transcript } from "../ai/transcript.js";
@@ -20,6 +20,7 @@ export const catchup: Command = {
 
   async execute(interaction) {
     if (!config.chatEnabled()) throw new UserError("Claude isn't set up on this bot (no ANTHROPIC_API_KEY).");
+    if (!claudeAllowedIn(interaction.guildId)) throw new UserError("Claude features aren't available in this server.");
     const channel = (interaction.options.getChannel("channel") ?? interaction.channel) as GuildTextBasedChannel | null;
     if (!channel?.isTextBased()) throw new UserError("I can't read that channel.");
     if (!channel.permissionsFor(interaction.user.id)?.has("ViewChannel")) throw new UserError("You can't see that channel.");

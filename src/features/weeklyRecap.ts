@@ -1,7 +1,7 @@
 // Every Sunday at 6 PM (server time), Claude writes a recap of the week and posts it in the channel
 // set with /settings recap.
 import { AttachmentBuilder, GuildScheduledEventStatus, type Client, type Guild, type GuildTextBasedChannel } from "discord.js";
-import { config } from "../config.js";
+import { claudeAllowedIn, config } from "../config.js";
 import { writeWithClaude } from "../ai/claude.js";
 import { takeQuota } from "../ai/quota.js";
 import { messagesSince, readableChannels, transcript } from "../ai/transcript.js";
@@ -87,7 +87,7 @@ async function check(client: Client<true>) {
     lastRun.data[guild.id] = today;
     await lastRun.save();
     const channel = guild.channels.cache.get(channelId);
-    if (!channel?.isTextBased() || !config.chatEnabled() || !takeQuota(5)) continue;
+    if (!channel?.isTextBased() || !claudeAllowedIn(guild.id) || !takeQuota(5)) continue;
     await postRecap(guild, channel as GuildTextBasedChannel)
       .then((ok) => console.log(ok ? `Posted weekly recap in ${guild.name}.` : `Quiet week in ${guild.name}, no recap.`))
       .catch((e) => console.error(`Weekly recap failed in ${guild.name}:`, e));

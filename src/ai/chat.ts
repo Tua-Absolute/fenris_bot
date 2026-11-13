@@ -9,7 +9,7 @@ import {
   type Message,
 } from "discord.js";
 import { randomUUID } from "node:crypto";
-import { config } from "../config.js";
+import { claudeAllowedIn, config } from "../config.js";
 import { UserError } from "../lib/files.js";
 import { execute, preview, requiredPermission, type Action } from "./actions.js";
 import { askClaude } from "./claude.js";
@@ -76,6 +76,8 @@ function chunks(text: string, size = 1900): string[] {
 
 async function onMessage(message: Message, client: Client<true>) {
   if (message.author.bot || !message.inGuild()) return;
+  // Claude only runs in your own server(s), so other servers can't spend your API credit.
+  if (!claudeAllowedIn(message.guildId)) return;
   const botId = client.user.id;
   const pinged = message.mentions.users.has(botId) || message.mentions.repliedUser?.id === botId;
   if (!pinged) return;

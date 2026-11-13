@@ -92,6 +92,8 @@ To turn it on:
 2. In the [Developer Portal](https://discord.com/developers/applications), open your app > **Bot** and switch on **Message Content Intent**.
 3. Put the key after `ANTHROPIC_API_KEY=` in `.env` and restart the bot. The terminal says "Claude chat is ON".
 
+Claude only works in your own server (the one in `DISCORD_GUILD_ID`). If other people add Fenris to their servers, everything else works there, but chat, `/catchup`, and recaps stay off so they can't spend your Anthropic credit. To allow another server, add its ID to `CHAT_GUILD_IDS` (comma-separated).
+
 Costs stay predictable: chat is off without a key, each person has a short cooldown, and `CHAT_DAILY_LIMIT` caps replies per day (default 200). `CLAUDE_MODEL` picks the model: `claude-opus-5-5` (default) is the smartest, `claude-haiku-5-5` costs a small fraction as much.
 
 ## Running it 24/7 on Railway
