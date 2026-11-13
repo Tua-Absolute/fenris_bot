@@ -14,6 +14,7 @@ import { UserError } from "../lib/files.js";
 import { execute, preview, requiredPermission, type Action } from "./actions.js";
 import { askClaude } from "./claude.js";
 import { takeQuota } from "./quota.js";
+import { formatBirthday, removeBirthday, setBirthday, validDate } from "../lib/birthdays.js";
 import { getSettings } from "../lib/settings.js";
 
 const COOLDOWN_MS = 8_000;
@@ -93,6 +94,23 @@ async function onMessage(message: Message, client: Client<true>) {
   await message.channel.sendTyping().catch(() => {});
   try {
     const result = await askClaude(await buildContext(message, botId));
+
+    if (result.birthday) {
+      // Only ever the author's own birthday, so no permission check or Confirm button is needed.
+      const b = result.birthday;
+      let note: string;
+      if (b.remove) {
+        note = (await removeBirthday(message.guild.id, message.author.id)) ? "🗑️ Your birthday is removed." : "You didn't have a birthday saved.";
+      } else if (!validDate(b.month, b.day)) {
+        note = "Hmm, that date doesn't exist. Could you tell me the month and day again?";
+      } else {
+        await setBirthday(message.guild.id, message.author.id, { month: b.month, day: b.day });
+        const ch = getSettings(message.guild.id).birthdayChannelId;
+        note = `🎂 Saved your birthday as **${formatBirthday(b)}**.${ch ? ` I'll celebrate in <#${ch}> on the day!` : ""}`;
+      }
+      await message.reply({ content: `${result.text ? `${result.text}\n` : ""}${note}`.slice(0, 2000), allowedMentions: { repliedUser: false, parse: [] } });
+      if (!result.action) return;
+    }
 
     if (!result.action) {
       const parts = chunks(result.text || "🐺");
