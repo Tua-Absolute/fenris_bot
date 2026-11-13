@@ -5,6 +5,7 @@ import { config } from "./config.js";
 import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
 import { startBirthdays } from "./features/birthdays.js";
+import { startQuotes } from "./features/quotes.js";
 import { registerBotTrap } from "./features/botTrap.js";
 import { registerBirthdayPing } from "./features/birthdayPing.js";
 import { registerLevels } from "./features/levels.js";
@@ -56,6 +57,7 @@ client.once(Events.ClientReady, async (c) => {
   startWeeklyRecap(c);
   startGiveaways(c);
   startBirthdays(c);
+  startQuotes(c);
   console.log(chat
     ? `Claude chat is ON (model: ${config.claudeModel()}, limit ${config.chatDailyLimit()} replies/day). Mention me to talk.`
     : "Claude chat is OFF. Add ANTHROPIC_API_KEY to .env to turn it on.");
