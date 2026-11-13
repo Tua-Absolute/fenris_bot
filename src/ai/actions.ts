@@ -94,6 +94,24 @@ export const tools: Anthropic.Beta.BetaTool[] = [
   },
 ];
 
+/** Not a proposal: saves (or removes) the asker's own birthday right away. It only ever touches the person talking. */
+export const birthdayTool: Anthropic.Beta.BetaTool = {
+  name: "save_my_birthday",
+  description: "Save or remove the birthday of the person talking to you (never anyone else), so Fenris announces it on the day. Use it when someone tells you their birthday or asks you to remember/forget it. Only month and day are stored; never ask for the year.",
+  strict: true,
+  input_schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      month: { type: "integer", description: "1 to 12 (0 when removing)" },
+      day: { type: "integer", description: "1 to 31 (0 when removing)" },
+      remove: { type: "boolean", description: "true to forget their birthday" },
+    },
+    required: ["month", "day", "remove"],
+  },
+};
+export interface BirthdayInput { month: number; day: number; remove: boolean }
+
 export function toAction(name: string, input: unknown): Action | null {
   if (name === "propose_announcement") return { kind: "announcement", input: input as AnnouncementInput };
   if (name === "propose_event") return { kind: "event", input: input as EventInput };

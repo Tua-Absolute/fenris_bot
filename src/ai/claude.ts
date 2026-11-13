@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
-import { toAction, tools, type Action } from "./actions.js";
+import { birthdayTool, toAction, tools, type Action, type BirthdayInput } from "./actions.js";
 
 const SYSTEM = `You are Fenris, the resident bot of a Discord server, named after the great wolf of Norse myth.
 You're friendly, sharp, and a little bit wolfish in flavor, but helpful first: answer questions, chat, brainstorm, and help run the server.
@@ -14,7 +14,8 @@ How to reply:
 Server actions:
 - When someone asks you to make an announcement, schedule an event, or start a poll, call the matching propose_ tool. A preview with a Confirm button is shown and nothing happens until they confirm, so go ahead and propose rather than asking for permission. Ask a short follow-up question instead only when something essential is missing (for example an event with no day at all).
 - Fill in reasonable details yourself: a strong title, an engaging body, a sensible duration. Use the channel and time information provided.
-- When you call a tool, add at most one short sentence of text, like "Here's a draft:".`;
+- When you call a tool, add at most one short sentence of text, like "Here's a draft:".
+- When someone tells you their own birthday ("my birthday is March 3rd", "remember my bday 7/14"), call save_my_birthday. Anyone can do this for themselves; you can't set or change anyone else's. If the date is unclear (like 3/4), ask which month they mean. Write a short, warm reply; the confirmation of the saved date is added for you.`;
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -30,6 +31,7 @@ function supportsFallbacks(model: string): boolean {
 export interface ChatResult {
   text: string;
   action: Action | null;
+  birthday?: BirthdayInput;
 }
 
 export async function askClaude(context: string): Promise<ChatResult> {
@@ -41,7 +43,7 @@ export async function askClaude(context: string): Promise<ChatResult> {
       model,
       max_tokens: 4000,
       system: SYSTEM,
-      tools,
+      tools: [...tools, birthdayTool],
       output_config: { effort: "low" }, // chat doesn't need deep reasoning, and low effort keeps cost down
       messages: [{ role: "user", content: context }],
       ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
@@ -67,11 +69,13 @@ export async function askClaude(context: string): Promise<ChatResult> {
 
   let text = "";
   let action: Action | null = null;
+  let birthday: BirthdayInput | undefined;
   for (const block of response.content) {
     if (block.type === "text") text += block.text;
+    else if (block.type === "tool_use" && block.name === birthdayTool.name) birthday = block.input as BirthdayInput;
     else if (block.type === "tool_use" && !action) action = toAction(block.name, block.input);
   }
-  return { text: text.trim(), action };
+  return { text: text.trim(), action, birthday };
 }
 
 /** Plain text completion for summaries and recaps (no tools). Returns "" if Claude declines. */
