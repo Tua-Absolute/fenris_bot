@@ -6,6 +6,7 @@ import { startEventReminders } from "./features/eventReminders.js";
 import { registerModLog } from "./features/modlogEvents.js";
 import { startBirthdays } from "./features/birthdays.js";
 import { registerBotTrap } from "./features/botTrap.js";
+import { registerBirthdayPing } from "./features/birthdayPing.js";
 import { registerLevels } from "./features/levels.js";
 import { startWeeklyRecap } from "./features/weeklyRecap.js";
 import { startGiveaways } from "./commands/giveaway.js";
@@ -38,6 +39,7 @@ registerWelcome(client);
 registerModLog(client);
 registerLevels(client);
 registerBotTrap(client);
+registerBirthdayPing(client);
 registerMemberCounter(client);
 
 client.once(Events.ClientReady, async (c) => {
