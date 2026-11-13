@@ -1,5 +1,5 @@
 import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder, type GuildTextBasedChannel } from "discord.js";
-import { config } from "../config.js";
+import { claudeAllowedIn, config } from "../config.js";
 import { takeQuota } from "../ai/quota.js";
 import { postRecap } from "../features/weeklyRecap.js";
 import { UserError } from "../lib/files.js";
@@ -13,6 +13,7 @@ export const recap: Command = {
 
   async execute(interaction) {
     if (!config.chatEnabled()) throw new UserError("Claude isn't set up on this bot (no ANTHROPIC_API_KEY).");
+    if (!claudeAllowedIn(interaction.guildId)) throw new UserError("Claude features aren't available in this server.");
     if (!takeQuota(5)) throw new UserError("I've hit today's Claude limit. Try again tomorrow!");
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const ok = await postRecap(interaction.guild!, interaction.channel as GuildTextBasedChannel);

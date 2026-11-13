@@ -18,4 +18,18 @@ export const config = {
   chatEnabled: () => !!process.env.ANTHROPIC_API_KEY?.trim(),
   claudeModel: () => process.env.CLAUDE_MODEL?.trim() || "claude-opus-5-5",
   chatDailyLimit: () => Number(process.env.CHAT_DAILY_LIMIT) || 200,
+  /**
+   * Servers where Claude features (chat, /catchup, /recap, weekly recap) work: your home server
+   * (DISCORD_GUILD_ID) plus any extra IDs in CHAT_GUILD_IDS. Everywhere else, Claude stays off,
+   * so other servers that add Fenris can't spend your Anthropic credit.
+   */
+  claudeServers: () => new Set([
+    required("DISCORD_GUILD_ID"),
+    ...(process.env.CHAT_GUILD_IDS ?? "").split(",").map((id) => id.trim()).filter(Boolean),
+  ]),
 };
+
+/** True when Claude is set up and allowed in this server. */
+export function claudeAllowedIn(guildId: string | null | undefined): boolean {
+  return config.chatEnabled() && !!guildId && config.claudeServers().has(guildId);
+}
