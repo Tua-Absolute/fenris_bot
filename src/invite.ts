@@ -23,6 +23,8 @@ const permissions = [
   p.ViewAuditLog, // mod log
   p.BanMembers, // bot catcher
   p.KickMembers, // bot catcher
+  p.CreatePublicThreads, // auto-threads
+  p.SendMessagesInThreads,
 ].reduce((a, b) => a | b, 0n);
 
 const url = new URL("https://discord.com/oauth2/authorize");

@@ -79,6 +79,7 @@ function adminGuide(withClaude: boolean): EmbedBuilder[] {
       "▸ `/settings levels` and `/settings level_role` turn on XP and reward roles.",
       "▸ `/birthday setup` picks the birthday channel, role, and message.",
       "▸ `/ticket panel` posts the support button, and `/stats counter` adds a live member count.",
+      "▸ `/autothread add` opens a thread on every screenshot posted in a channel.",
     ]),
   ];
   if (withClaude) list.push(section("🧠 Claude (This Server Only)", [

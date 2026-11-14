@@ -7,6 +7,7 @@ import { registerModLog } from "./features/modlogEvents.js";
 import { startBirthdays } from "./features/birthdays.js";
 import { startQuotes } from "./features/quotes.js";
 import { registerBotTrap } from "./features/botTrap.js";
+import { registerAutoThreads } from "./features/autoThreads.js";
 import { registerBirthdayPing } from "./features/birthdayPing.js";
 import { registerLevels } from "./features/levels.js";
 import { startWeeklyRecap } from "./features/weeklyRecap.js";
@@ -40,6 +41,7 @@ registerWelcome(client);
 registerModLog(client);
 registerLevels(client);
 registerBotTrap(client);
+registerAutoThreads(client);
 registerBirthdayPing(client);
 registerMemberCounter(client);
 
