@@ -20,6 +20,8 @@ export interface GuildSettings {
   birthdayMessage?: string;
   botTrap?: { channelId: string; messageId: string; action: "ban" | "kick" | "timeout" };
   rules?: { channelId: string; messageId?: string; text: string; title: string; memberRoleId: string; introRoleId?: string };
+  /** Channels where Fenris opens a thread on each screenshot (or each post). Keyed by channel ID. */
+  autoThreads?: Record<string, { name?: string; imagesOnly: boolean; archiveMinutes: 60 | 1440 | 4320 | 10080 }>;
   quotes?: {
     channelId: string;
     frequency: "daily" | "weekly" | "biweekly" | "monthly";
