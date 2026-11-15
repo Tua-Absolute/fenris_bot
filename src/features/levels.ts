@@ -32,7 +32,7 @@ async function onMessage(message: Message) {
   const roles = await applyLevelRoles(message.member, levelUp);
   const target = (s.levelUpChannelId ? message.guild.channels.cache.get(s.levelUpChannelId) : message.channel) as GuildTextBasedChannel | undefined;
   await target?.send({
-    embeds: [brandEmbed(colors.red).setThumbnail(message.author.displayAvatarURL())
+    embeds: [brandEmbed(colors.red).setThumbnail(message.member.displayAvatarURL())
       .setDescription(`🐺 **Level up!** <@${message.author.id}> reached **level ${levelUp}**!` +
         (roles.length ? `\nUnlocked ${roles.map((r) => `<@&${r}>`).join(" ")}` : ""))],
     allowedMentions: { parse: [] },

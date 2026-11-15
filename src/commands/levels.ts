@@ -22,13 +22,15 @@ export const rank: Command = {
     const guildId = interaction.guildId!;
     needLevels(guildId);
     const user = interaction.options.getUser("user") ?? interaction.user;
+    // Server profile (nickname and server avatar) when they have one, otherwise their account's.
+    const member = await interaction.guild?.members.fetch(user.id).catch(() => null);
     const { xp, messages } = getXp(guildId, user.id);
     const { level, into, needed } = levelFromXp(xp);
     const position = board(guildId).findIndex((e) => e.userId === user.id);
     const rewards = Object.entries(getSettings(guildId).levelRoles ?? {}).map(([l, r]) => [Number(l), r] as const)
       .filter(([l]) => l > level).sort((a, b) => a[0] - b[0]);
     await interaction.reply({
-      embeds: [brandEmbed(colors.red).setAuthor({ name: user.displayName, iconURL: user.displayAvatarURL() })
+      embeds: [brandEmbed(colors.red).setAuthor({ name: member?.displayName ?? user.displayName, iconURL: (member ?? user).displayAvatarURL() })
         .setTitle(`Level ${level}`)
         .setDescription(`${progressBar(into, needed)} ${into}/${needed} XP\n\n` +
           `**Rank:** ${position >= 0 ? `#${position + 1}` : "unranked"} · **Total XP:** ${xp.toLocaleString()} · **Messages:** ${messages.toLocaleString()}` +
